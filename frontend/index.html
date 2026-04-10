@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dance Class Registration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- LOGIN VIEW -->
+    <section id="view-login" class="view active">
+      <div class="login-bg">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="login-card">
+        <div class="login-header">
+          <h1>Dance<br><em>Studio</em></h1>
+          <p>Sign in to your account</p>
+        </div>
+        <form id="login-form" novalidate>
+          <div class="field">
+            <label for="login-name">Name</label>
+            <input id="login-name" type="text" placeholder="Your name" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="login-password">Password</label>
+            <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password" />
+          </div>
+          <div id="login-error" class="error-msg hidden"></div>
+          <button type="submit" id="login-btn">
+            <span class="btn-text">Enter</span>
+            <span class="btn-loader hidden"></span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- DASHBOARD VIEW -->
+    <section id="view-dashboard" class="view hidden">
+      <header class="dash-header">
+        <div class="dash-header-left">
+          <h2>Dance <em>Studio</em></h2>
+        </div>
+        <div class="dash-header-right">
+          <span id="dash-username"></span>
+          <button id="logout-btn">Logout</button>
+        </div>
+      </header>
+      <main class="dash-main">
+        <!-- Stats cards -->
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card" id="card-taken">
+            <span class="stat-label">Classes taken</span>
+            <span class="stat-value" id="stat-taken">—</span>
+          </div>
+          <div class="stat-card" id="card-remaining">
+            <span class="stat-label">Classes remaining</span>
+            <span class="stat-value" id="stat-remaining">—</span>
+          </div>
+          <div class="stat-card" id="card-days">
+            <span class="stat-label">Days to next payment</span>
+            <span class="stat-value" id="stat-days">—</span>
+          </div>
+        </div>
+
+        <!-- Classes section -->
+        <div class="classes-section">
+          <div class="classes-top">
+            <h3>Class history</h3>
+            <button class="btn-add" id="btn-open-register">+ Register class</button>
+          </div>
+
+          <!-- Register form (hidden by default) -->
+          <div id="register-form-wrapper" class="register-form hidden">
+            <form id="register-class-form" novalidate>
+              <div class="field-row">
+                <div class="field">
+                  <label for="class-type">Type</label>
+                  <select id="class-type">
+                    <option value="">Select type</option>
+                    <option value="Bachata">Bachata</option>
+                    <option value="Salsa">Salsa</option>
+                    <option value="Cumbia">Cumbia</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="class-date">Date</label>
+                  <input id="class-date" type="date" />
+                </div>
+                <div class="field field-actions">
+                  <button type="submit" class="btn-save">Save</button>
+                  <button type="button" class="btn-cancel" id="btn-cancel-register">Cancel</button>
+                </div>
+              </div>
+              <div id="class-error" class="error-msg hidden"></div>
+            </form>
+          </div>
+
+          <!-- History table -->
+          <div class="table-wrapper">
+            <table id="classes-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="classes-tbody">
+                <tr id="classes-empty-row">
+                  <td colspan="3" class="empty-msg">No classes registered yet</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </section>
+
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
