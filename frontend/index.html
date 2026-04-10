@@ -92,13 +92,14 @@
           <!-- Classes section -->
           <div class="classes-section">
             <div class="classes-top">
-              <h3>Class history</h3>
+              <h3>
+                Class history
+                <span id="classes-count" class="classes-count hidden"></span>
+              </h3>
               <button class="btn-add" id="btn-open-register">
                 + Register class
               </button>
             </div>
-
-            <!-- History table -->
             <div class="table-wrapper">
               <table id="classes-table">
                 <thead>
@@ -118,7 +119,6 @@
                       </div>
                     </td>
                   </tr>
-                  <!-- Skeleton rows -->
                   <tr class="skeleton-row">
                     <td><div class="skeleton"></div></td>
                     <td><div class="skeleton"></div></td>
@@ -141,7 +141,7 @@
         </main>
       </section>
 
-      <!-- MODAL -->
+      <!-- REGISTER MODAL -->
       <div id="modal-overlay" class="modal-overlay hidden">
         <div class="modal">
           <div class="modal-header">
@@ -170,6 +170,27 @@
               <button type="submit" class="btn-save">Save class</button>
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- CONFIRM MODAL -->
+      <div id="confirm-overlay" class="modal-overlay hidden">
+        <div class="modal modal-sm">
+          <div class="modal-header">
+            <h4>Delete class</h4>
+          </div>
+          <p class="confirm-msg">
+            Are you sure you want to delete this class? This action cannot be
+            undone.
+          </p>
+          <div class="modal-actions">
+            <button type="button" class="btn-cancel" id="confirm-cancel">
+              Cancel
+            </button>
+            <button type="button" class="btn-danger" id="confirm-delete">
+              Delete
+            </button>
+          </div>
         </div>
       </div>
 

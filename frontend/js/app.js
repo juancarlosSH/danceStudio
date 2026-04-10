@@ -5,6 +5,7 @@ const state = {
   token: null,
   user: null,
   classes: [],
+  pendingDeleteId: null,
 };
 
 // ── DOM refs ─────────────────────────────────────────────────
@@ -36,13 +37,18 @@ const el = {
   btnCancelRegister: document.getElementById("btn-cancel-register"),
   modalOverlay: document.getElementById("modal-overlay"),
   modalClose: document.getElementById("modal-close"),
-  registerClassForm: document.getElementById("register-class-form"),
+  registerForm: document.getElementById("register-class-form"),
   classType: document.getElementById("class-type"),
   classDate: document.getElementById("class-date"),
   classError: document.getElementById("class-error"),
 
+  confirmOverlay: document.getElementById("confirm-overlay"),
+  confirmCancel: document.getElementById("confirm-cancel"),
+  confirmDelete: document.getElementById("confirm-delete"),
+
   classesTbody: document.getElementById("classes-tbody"),
   classesEmptyRow: document.getElementById("classes-empty-row"),
+  classesCount: document.getElementById("classes-count"),
   skeletonRows: document.querySelectorAll(".skeleton-row"),
 
   toast: document.getElementById("toast"),
@@ -68,21 +74,33 @@ function showToast(msg, type = "success") {
   toastTimer = setTimeout(() => el.toast.classList.add("hidden"), 3000);
 }
 
-// ── Modal ────────────────────────────────────────────────────
+// ── Register modal ───────────────────────────────────────────
 function openModal() {
   el.classDate.valueAsDate = new Date();
   el.modalOverlay.classList.remove("hidden");
 }
 function closeModal() {
   el.modalOverlay.classList.add("hidden");
-  el.registerClassForm.reset();
+  el.registerForm.reset();
   showError(el.classError, "");
+}
+
+// ── Confirm modal ────────────────────────────────────────────
+function openConfirm(id) {
+  state.pendingDeleteId = id;
+  el.confirmOverlay.classList.remove("hidden");
+}
+function closeConfirm() {
+  state.pendingDeleteId = null;
+  el.confirmOverlay.classList.add("hidden");
 }
 
 // ── Skeleton ─────────────────────────────────────────────────
 function showSkeletons() {
   el.skeletonRows.forEach((r) => r.classList.remove("hidden"));
   el.classesEmptyRow.classList.add("hidden");
+  el.classesCount.textContent = "";
+  el.classesCount.classList.add("hidden");
   [el.statTaken, el.statRemaining, el.statDays].forEach((s) => {
     s.textContent = "—";
     s.classList.add("loading");
@@ -99,10 +117,8 @@ function hideSkeletons() {
 function applyCardAlerts(remaining, days) {
   el.cardRemaining.classList.remove("alert-warning", "alert-danger");
   el.cardDays.classList.remove("alert-warning", "alert-danger");
-
   if (remaining <= 0) el.cardRemaining.classList.add("alert-danger");
   else if (remaining <= 3) el.cardRemaining.classList.add("alert-warning");
-
   if (days <= 0) el.cardDays.classList.add("alert-danger");
   else if (days <= 5) el.cardDays.classList.add("alert-warning");
 }
@@ -167,8 +183,18 @@ async function loadClasses() {
   renderClasses();
 }
 
+function updateCount() {
+  const n = state.classes.length;
+  if (n > 0) {
+    el.classesCount.textContent = n;
+    el.classesCount.classList.remove("hidden");
+  } else {
+    el.classesCount.classList.add("hidden");
+  }
+}
 function renderClasses() {
   el.classesTbody.querySelectorAll("tr[data-id]").forEach((r) => r.remove());
+  updateCount();
 
   if (state.classes.length === 0) {
     el.classesEmptyRow.classList.remove("hidden");
@@ -218,9 +244,9 @@ function formatDate(dateStr) {
   });
 }
 
-function showError(el, msg) {
-  el.textContent = msg;
-  msg ? el.classList.remove("hidden") : el.classList.add("hidden");
+function showError(elRef, msg) {
+  elRef.textContent = msg;
+  msg ? elRef.classList.remove("hidden") : elRef.classList.add("hidden");
 }
 
 function setLoginLoading(loading) {
@@ -268,7 +294,7 @@ el.modalOverlay.addEventListener("click", (e) => {
   if (e.target === el.modalOverlay) closeModal();
 });
 
-el.registerClassForm.addEventListener("submit", async (e) => {
+el.registerForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const type = el.classType.value;
   const class_date = el.classDate.value;
@@ -286,11 +312,20 @@ el.registerClassForm.addEventListener("submit", async (e) => {
   }
 });
 
-el.classesTbody.addEventListener("click", async (e) => {
+el.classesTbody.addEventListener("click", (e) => {
   const btn = e.target.closest(".btn-delete");
   if (!btn) return;
-  const id = parseInt(btn.dataset.id);
-  if (!confirm("Delete this class?")) return;
+  openConfirm(parseInt(btn.dataset.id));
+});
+
+el.confirmCancel.addEventListener("click", closeConfirm);
+el.confirmOverlay.addEventListener("click", (e) => {
+  if (e.target === el.confirmOverlay) closeConfirm();
+});
+
+el.confirmDelete.addEventListener("click", async () => {
+  const id = state.pendingDeleteId;
+  closeConfirm();
   try {
     await deleteClass(id);
     showToast("Class deleted", "success");
