@@ -1,0 +1,37 @@
+.dash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 40px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition:
+    background var(--transition),
+    border-color var(--transition);
+}
+
+.dash-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 300;
+}
+
+.dash-header h2 em {
+  font-style: italic;
+  color: var(--accent-warm);
+}
+
+.dash-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-header-right > span {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-right: 4px;
+}

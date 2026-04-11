@@ -1,0 +1,13 @@
+{
+  "name": "dance-class-registration-frontend",
+  "version": "2.0.0",
+  "scripts": {
+    "build": "tsc && node build.mjs",
+    "dev": "npx http-server dist -p 8080 --cors"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.4.5"
+  }
+}
