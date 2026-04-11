@@ -1,6 +1,71 @@
 const API_URL = window.ENV_API_URL || "http://localhost:3000";
 
-// ── State ────────────────────────────────────────────────────
+// ── i18n ─────────────────────────────────────────────────────
+let currentLang = "en";
+
+function detectLang() {
+  const saved = localStorage.getItem("lang");
+  if (saved) return saved;
+  const browser = (navigator.language || "en").slice(0, 2).toLowerCase();
+  return browser === "es" ? "es" : "en";
+}
+
+function applyLang(lang) {
+  currentLang = lang;
+  localStorage.setItem("lang", lang);
+  document.documentElement.lang = lang;
+
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    if (TRANSLATIONS[lang][key] !== undefined)
+      el.textContent = TRANSLATIONS[lang][key];
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-placeholder");
+    if (TRANSLATIONS[lang][key] !== undefined)
+      el.placeholder = TRANSLATIONS[lang][key];
+  });
+
+  const label = lang === "es" ? "ES" : "EN";
+  document
+    .querySelectorAll("#lang-toggle, #lang-toggle-profile")
+    .forEach((b) => (b.textContent = label));
+
+  renderCalendar();
+}
+
+function t(key) {
+  return TRANSLATIONS[currentLang][key] || key;
+}
+
+// ── Dark mode ─────────────────────────────────────────────────
+function detectTheme() {
+  const saved = localStorage.getItem("theme");
+  if (saved) return saved;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
+  const icon = theme === "dark" ? "☀️" : "🌙";
+  document
+    .querySelectorAll("#theme-toggle, #theme-toggle-profile")
+    .forEach((b) => (b.textContent = icon));
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme");
+  applyTheme(current === "dark" ? "light" : "dark");
+}
+
+function toggleLang() {
+  applyLang(currentLang === "es" ? "en" : "es");
+}
+
+// ── State ─────────────────────────────────────────────────────
 const state = {
   token: null,
   user: null,
@@ -10,7 +75,7 @@ const state = {
   calMonth: new Date().getMonth(),
 };
 
-// ── DOM refs ─────────────────────────────────────────────────
+// ── DOM refs ──────────────────────────────────────────────────
 const views = {
   login: document.getElementById("view-login"),
   register: document.getElementById("view-register"),
@@ -73,6 +138,7 @@ const el = {
   calTitle: document.getElementById("cal-title"),
   calPrev: document.getElementById("cal-prev"),
   calNext: document.getElementById("cal-next"),
+  calDayNames: document.getElementById("cal-day-names"),
   calDays: document.getElementById("cal-days"),
 
   btnOpenRegister: document.getElementById("btn-open-register"),
@@ -83,6 +149,7 @@ const el = {
   classType: document.getElementById("class-type"),
   classDate: document.getElementById("class-date"),
   classError: document.getElementById("class-error"),
+  selectTypePlaceholder: document.querySelector('#class-type option[value=""]'),
 
   confirmOverlay: document.getElementById("confirm-overlay"),
   confirmCancel: document.getElementById("confirm-cancel"),
@@ -96,7 +163,7 @@ const el = {
   toast: document.getElementById("toast"),
 };
 
-// ── View switching ───────────────────────────────────────────
+// ── View switching ────────────────────────────────────────────
 function showView(name) {
   Object.values(views).forEach((v) => {
     v.classList.add("hidden");
@@ -107,7 +174,7 @@ function showView(name) {
   window.scrollTo(0, 0);
 }
 
-// ── Toast ────────────────────────────────────────────────────
+// ── Toast ─────────────────────────────────────────────────────
 let toastTimer = null;
 function showToast(msg, type = "success") {
   el.toast.textContent = msg;
@@ -117,7 +184,7 @@ function showToast(msg, type = "success") {
   toastTimer = setTimeout(() => el.toast.classList.add("hidden"), 3000);
 }
 
-// ── Register class modal ─────────────────────────────────────
+// ── Modals ────────────────────────────────────────────────────
 function openModal() {
   el.classDate.valueAsDate = new Date();
   el.modalOverlay.classList.remove("hidden");
@@ -127,8 +194,6 @@ function closeModal() {
   el.registerClassForm.reset();
   showError(el.classError, "");
 }
-
-// ── Confirm modal ────────────────────────────────────────────
 function openConfirm(id) {
   state.pendingDeleteId = id;
   el.confirmOverlay.classList.remove("hidden");
@@ -138,7 +203,7 @@ function closeConfirm() {
   el.confirmOverlay.classList.add("hidden");
 }
 
-// ── Skeleton ─────────────────────────────────────────────────
+// ── Skeleton ──────────────────────────────────────────────────
 function showSkeletons() {
   el.skeletonRows.forEach((r) => r.classList.remove("hidden"));
   el.classesEmptyRow.classList.add("hidden");
@@ -156,7 +221,7 @@ function hideSkeletons() {
   );
 }
 
-// ── Alert states ─────────────────────────────────────────────
+// ── Card alerts ───────────────────────────────────────────────
 function applyCardAlerts(remaining, days) {
   el.cardRemaining.classList.remove("alert-warning", "alert-danger");
   el.cardDays.classList.remove("alert-warning", "alert-danger");
@@ -166,22 +231,7 @@ function applyCardAlerts(remaining, days) {
   else if (days <= 5) el.cardDays.classList.add("alert-warning");
 }
 
-// ── Calendar ─────────────────────────────────────────────────
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
+// ── Calendar ──────────────────────────────────────────────────
 function buildCalendarMap() {
   const map = {};
   state.classes.forEach((cls) => {
@@ -194,8 +244,21 @@ function buildCalendarMap() {
 }
 
 function renderCalendar() {
+  if (!el.calTitle) return;
   const { calYear: y, calMonth: m } = state;
-  el.calTitle.textContent = `${MONTHS[m]} ${y}`;
+  const months = t("calMonths");
+  el.calTitle.textContent = `${months[m]} ${y}`;
+
+  el.calDayNames.innerHTML = "";
+  ["calSu", "calMo", "calTu", "calWe", "calTh", "calFr", "calSa"].forEach(
+    (k) => {
+      const d = document.createElement("div");
+      d.className = "cal-day-name";
+      d.textContent = t(k);
+      el.calDayNames.appendChild(d);
+    },
+  );
+
   const map = buildCalendarMap();
   const today = new Date();
   const first = new Date(y, m, 1).getDay();
@@ -216,8 +279,7 @@ function renderCalendar() {
       m === today.getMonth() &&
       y === today.getFullYear();
     cell.className = `cal-day${isToday ? " today" : ""}`;
-    const key = `${y}-${m}-${d}`;
-    const types = map[key] || [];
+    const types = map[`${y}-${m}-${d}`] || [];
     const dots = types
       .map((t) => `<span class="cal-dot dot-${t.toLowerCase()}"></span>`)
       .join("");
@@ -234,7 +296,7 @@ function renderCalendar() {
   }
 }
 
-// ── Auth ─────────────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────────────
 async function login(name, password) {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
@@ -242,7 +304,7 @@ async function login(name, password) {
     body: JSON.stringify({ name, password }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "Invalid credentials");
+  if (!res.ok) throw new Error(data.message || t("namePasswordRequired"));
   return data;
 }
 
@@ -274,7 +336,7 @@ function logout() {
   showError(el.loginError, "");
 }
 
-// ── API helpers ──────────────────────────────────────────────
+// ── API ───────────────────────────────────────────────────────
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -289,7 +351,7 @@ async function apiFetch(path, options = {}) {
   return data;
 }
 
-// ── Stats ────────────────────────────────────────────────────
+// ── Stats ─────────────────────────────────────────────────────
 async function loadStats() {
   const id = state.user.id;
   const [taken, remaining, days] = await Promise.all([
@@ -303,7 +365,7 @@ async function loadStats() {
   applyCardAlerts(remaining.classes_remaining, days.days_remaining);
 }
 
-// ── Classes ──────────────────────────────────────────────────
+// ── Classes ───────────────────────────────────────────────────
 async function loadClasses() {
   const data = await apiFetch(`/classes/user/${state.user.id}`);
   state.classes = data;
@@ -362,21 +424,21 @@ async function deleteClass(id) {
   await loadStats();
 }
 
-// ── Profile ──────────────────────────────────────────────────
+// ── Profile ───────────────────────────────────────────────────
 async function loadProfileData() {
   const res = await apiFetch(`/users/${state.user.id}/profile`);
   el.profPaidAt.value = res.paid_at ? res.paid_at.split("T")[0] : "";
-  const radios = document.querySelectorAll('input[name="classes_paid"]');
-  radios.forEach((r) => {
+  document.querySelectorAll('input[name="classes_paid"]').forEach((r) => {
     r.checked = parseInt(r.value) === res.classes_paid;
   });
 }
 
-// ── Utilities ────────────────────────────────────────────────
+// ── Utilities ─────────────────────────────────────────────────
 function formatDate(dateStr) {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
+  const locale = currentLang === "es" ? "es-MX" : "en-US";
+  return d.toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -403,12 +465,20 @@ function todayString() {
   return new Date().toISOString().split("T")[0];
 }
 
-// ── Event listeners ──────────────────────────────────────────
+// ── Event listeners ───────────────────────────────────────────
+document
+  .querySelectorAll("#theme-toggle, #theme-toggle-profile")
+  .forEach((b) => b.addEventListener("click", toggleTheme));
+document.querySelectorAll("#lang-toggle, #lang-toggle-profile").forEach((b) =>
+  b.addEventListener("click", () => {
+    toggleLang();
+  }),
+);
+
 el.goRegister.addEventListener("click", () => {
   showError(el.loginError, "");
   showView("register");
 });
-
 el.goLogin.addEventListener("click", () => {
   showError(el.registerError, "");
   showSuccess(el.registerSuccess, "");
@@ -420,7 +490,7 @@ el.loginForm.addEventListener("submit", async (e) => {
   const name = el.loginName.value.trim();
   const password = el.loginPassword.value;
   if (!name || !password) {
-    showError(el.loginError, "Name and password are required");
+    showError(el.loginError, t("namePasswordRequired"));
     return;
   }
   setLoading(el.loginBtn, el.loginBtnText, el.loginBtnLoader, true);
@@ -451,7 +521,7 @@ el.registerForm.addEventListener("submit", async (e) => {
   const name = el.regName.value.trim();
   const password = el.regPassword.value;
   if (!name || !password) {
-    showError(el.registerError, "Name and password are required");
+    showError(el.registerError, t("namePasswordRequired"));
     return;
   }
   setLoading(el.registerBtn, el.registerBtnText, el.registerBtnLoader, true);
@@ -459,10 +529,7 @@ el.registerForm.addEventListener("submit", async (e) => {
   showSuccess(el.registerSuccess, "");
   try {
     await registerUser(name, password);
-    showSuccess(
-      el.registerSuccess,
-      "Account created. Ask your admin to activate it.",
-    );
+    showSuccess(el.registerSuccess, t("accountCreated"));
     el.registerForm.reset();
   } catch (err) {
     showError(el.registerError, err.message);
@@ -492,19 +559,21 @@ el.paymentForm.addEventListener("submit", async (e) => {
     'input[name="classes_paid"]:checked',
   );
   if (!paid_at || !classesPaidEl) {
-    showError(el.paymentError, "Payment date and classes paid are required");
+    showError(el.paymentError, t("paymentRequired"));
     return;
   }
-  const classes_paid = parseInt(classesPaidEl.value);
   setLoading(el.paymentBtn, el.paymentBtnText, el.paymentBtnLoader, true);
   showError(el.paymentError, "");
   try {
     await apiFetch(`/users/${state.user.id}/payment`, {
       method: "PATCH",
-      body: JSON.stringify({ paid_at, classes_paid }),
+      body: JSON.stringify({
+        paid_at,
+        classes_paid: parseInt(classesPaidEl.value),
+      }),
     });
     await loadStats();
-    showToast("Payment info updated", "success");
+    showToast(t("toastPaymentUpdated"), "success");
   } catch (err) {
     showError(el.paymentError, err.message);
   } finally {
@@ -517,11 +586,11 @@ el.passwordForm.addEventListener("submit", async (e) => {
   const newPassword = el.profNewPassword.value;
   const confirmPassword = el.profConfirmPassword.value;
   if (!newPassword || !confirmPassword) {
-    showError(el.passwordError, "Both fields are required");
+    showError(el.passwordError, t("bothFieldsRequired"));
     return;
   }
   if (newPassword !== confirmPassword) {
-    showError(el.passwordError, "Passwords do not match");
+    showError(el.passwordError, t("passwordsNoMatch"));
     return;
   }
   setLoading(el.passwordBtn, el.passwordBtnText, el.passwordBtnLoader, true);
@@ -531,10 +600,7 @@ el.passwordForm.addEventListener("submit", async (e) => {
       method: "PATCH",
       body: JSON.stringify({ password: newPassword }),
     });
-    showToast(
-      "Password updated. Your account has been deactivated.",
-      "success",
-    );
+    showToast(t("toastPasswordUpdated"), "success");
     el.passwordForm.reset();
     setTimeout(logout, 2500);
   } catch (err) {
@@ -550,7 +616,7 @@ el.quickBtns.forEach((btn) => {
     btn.classList.add("loading");
     try {
       await registerClass(type, todayString());
-      showToast(`${type} class registered`, "success");
+      showToast(`${type} — ${t("toastClassRegistered")}`, "success");
     } catch (err) {
       showToast(err.message, "error");
     } finally {
@@ -588,14 +654,14 @@ el.registerClassForm.addEventListener("submit", async (e) => {
   const type = el.classType.value;
   const class_date = el.classDate.value;
   if (!type || !class_date) {
-    showError(el.classError, "Type and date are required");
+    showError(el.classError, t("typeAndDateRequired"));
     return;
   }
   showError(el.classError, "");
   try {
     await registerClass(type, class_date);
     closeModal();
-    showToast("Class registered successfully", "success");
+    showToast(t("toastClassRegistered"), "success");
   } catch (err) {
     showError(el.classError, err.message);
   }
@@ -611,20 +677,22 @@ el.confirmCancel.addEventListener("click", closeConfirm);
 el.confirmOverlay.addEventListener("click", (e) => {
   if (e.target === el.confirmOverlay) closeConfirm();
 });
-
 el.confirmDelete.addEventListener("click", async () => {
   const id = state.pendingDeleteId;
   closeConfirm();
   try {
     await deleteClass(id);
-    showToast("Class deleted", "success");
+    showToast(t("toastClassDeleted"), "success");
   } catch (err) {
     showToast(err.message, "error");
   }
 });
 
-// ── Init: restore session ────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────
 (async () => {
+  applyTheme(detectTheme());
+  applyLang(detectLang());
+
   const savedToken = localStorage.getItem("token");
   const savedUser = localStorage.getItem("user");
   if (savedToken && savedUser) {
