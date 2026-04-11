@@ -47,6 +47,51 @@
               <span class="btn-loader hidden"></span>
             </button>
           </form>
+          <div class="auth-switch">
+            <span>Don't have an account?</span>
+            <button type="button" id="go-register">Create one</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- REGISTER VIEW -->
+      <section id="view-register" class="view hidden">
+        <div class="login-bg"><span></span><span></span><span></span></div>
+        <div class="login-card">
+          <div class="login-header">
+            <h1>Dance<br /><em>Studio</em></h1>
+            <p>Create your account</p>
+          </div>
+          <form id="register-form" novalidate>
+            <div class="field">
+              <label for="reg-name">Name</label>
+              <input
+                id="reg-name"
+                type="text"
+                placeholder="Your name"
+                autocomplete="username"
+              />
+            </div>
+            <div class="field">
+              <label for="reg-password">Password</label>
+              <input
+                id="reg-password"
+                type="password"
+                placeholder="••••••••"
+                autocomplete="new-password"
+              />
+            </div>
+            <div id="register-error" class="error-msg hidden"></div>
+            <div id="register-success" class="success-msg hidden"></div>
+            <button type="submit" id="register-btn">
+              <span class="btn-text">Create account</span>
+              <span class="btn-loader hidden"></span>
+            </button>
+          </form>
+          <div class="auth-switch">
+            <span>Already have an account?</span>
+            <button type="button" id="go-login">Sign in</button>
+          </div>
         </div>
       </section>
 
@@ -58,14 +103,14 @@
           </div>
           <div class="dash-header-right">
             <span id="dash-username"></span>
+            <button id="go-profile-btn">Profile</button>
             <button id="logout-btn">Logout</button>
           </div>
         </header>
         <main class="dash-main">
-          <!-- Stats cards -->
-          <div class="stats-grid" id="stats-grid">
+          <div class="stats-grid">
             <div class="stat-card" id="card-taken">
-              <div class="stat-icon">🎯</div>
+              <div class="stat-icon">💃</div>
               <div class="stat-info">
                 <span class="stat-label">Classes taken</span>
                 <span class="stat-value skeleton-val" id="stat-taken">—</span>
@@ -89,59 +134,183 @@
             </div>
           </div>
 
-          <!-- Classes section -->
-          <div class="classes-section">
-            <div class="classes-top">
-              <h3>
-                Class history
-                <span id="classes-count" class="classes-count hidden"></span>
-              </h3>
-              <button class="btn-add" id="btn-open-register">
-                + Register class
-              </button>
+          <div class="quick-register">
+            <button class="btn-quick btn-quick-bachata" data-type="Bachata">
+              Bachata
+            </button>
+            <button class="btn-quick btn-quick-salsa" data-type="Salsa">
+              Salsa
+            </button>
+            <button class="btn-quick btn-quick-cumbia" data-type="Cumbia">
+              Cumbia
+            </button>
+          </div>
+
+          <div class="content-grid">
+            <div class="calendar-section">
+              <div class="calendar-header">
+                <button class="cal-nav" id="cal-prev">‹</button>
+                <span id="cal-title"></span>
+                <button class="cal-nav" id="cal-next">›</button>
+              </div>
+              <div class="calendar-grid">
+                <div class="cal-day-name">Su</div>
+                <div class="cal-day-name">Mo</div>
+                <div class="cal-day-name">Tu</div>
+                <div class="cal-day-name">We</div>
+                <div class="cal-day-name">Th</div>
+                <div class="cal-day-name">Fr</div>
+                <div class="cal-day-name">Sa</div>
+              </div>
+              <div id="cal-days" class="calendar-grid"></div>
+              <div class="cal-legend">
+                <span class="cal-dot dot-bachata"></span>Bachata
+                <span class="cal-dot dot-salsa"></span>Salsa
+                <span class="cal-dot dot-cumbia"></span>Cumbia
+              </div>
             </div>
-            <div class="table-wrapper">
-              <table id="classes-table">
-                <thead>
-                  <tr>
-                    <th>Type</th>
-                    <th>Date</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="classes-tbody">
-                  <tr id="classes-empty-row" class="hidden">
-                    <td colspan="3">
-                      <div class="empty-state">
-                        <span class="empty-icon">🕺</span>
-                        <p>No classes registered yet</p>
-                        <span>Hit "Register class" to add your first one</span>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr class="skeleton-row">
-                    <td><div class="skeleton"></div></td>
-                    <td><div class="skeleton"></div></td>
-                    <td></td>
-                  </tr>
-                  <tr class="skeleton-row">
-                    <td><div class="skeleton"></div></td>
-                    <td><div class="skeleton"></div></td>
-                    <td></td>
-                  </tr>
-                  <tr class="skeleton-row">
-                    <td><div class="skeleton"></div></td>
-                    <td><div class="skeleton"></div></td>
-                    <td></td>
-                  </tr>
-                </tbody>
-              </table>
+
+            <div class="classes-section">
+              <div class="classes-top">
+                <h3>
+                  Class history
+                  <span id="classes-count" class="classes-count hidden"></span>
+                </h3>
+                <button class="btn-add" id="btn-open-register">
+                  + Register class
+                </button>
+              </div>
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Date</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="classes-tbody">
+                    <tr id="classes-empty-row" class="hidden">
+                      <td colspan="3">
+                        <div class="empty-state">
+                          <span class="empty-icon">🕺</span>
+                          <p>No classes registered yet</p>
+                          <span
+                            >Hit "Register class" to add your first one</span
+                          >
+                        </div>
+                      </td>
+                    </tr>
+                    <tr class="skeleton-row">
+                      <td><div class="skeleton"></div></td>
+                      <td><div class="skeleton"></div></td>
+                      <td></td>
+                    </tr>
+                    <tr class="skeleton-row">
+                      <td><div class="skeleton"></div></td>
+                      <td><div class="skeleton"></div></td>
+                      <td></td>
+                    </tr>
+                    <tr class="skeleton-row">
+                      <td><div class="skeleton"></div></td>
+                      <td><div class="skeleton"></div></td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </main>
       </section>
 
-      <!-- REGISTER MODAL -->
+      <!-- PROFILE VIEW -->
+      <section id="view-profile" class="view hidden">
+        <header class="dash-header">
+          <div class="dash-header-left">
+            <h2>Dance <em>Studio</em></h2>
+          </div>
+          <div class="dash-header-right">
+            <span id="profile-username"></span>
+            <button id="go-dashboard-btn">Dashboard</button>
+            <button id="profile-logout-btn">Logout</button>
+          </div>
+        </header>
+        <main class="dash-main profile-main">
+          <div class="profile-grid">
+            <!-- Payment info card -->
+            <div class="profile-card">
+              <div class="profile-card-header">
+                <span class="profile-card-icon">💳</span>
+                <h3>Payment info</h3>
+              </div>
+              <form id="payment-form" novalidate>
+                <div class="field">
+                  <label for="prof-paid-at">Payment date</label>
+                  <input id="prof-paid-at" type="date" />
+                </div>
+                <div class="field">
+                  <label>Classes paid</label>
+                  <div class="classes-options">
+                    <label class="option-pill">
+                      <input type="radio" name="classes_paid" value="12" />
+                      <span>12 classes</span>
+                    </label>
+                    <label class="option-pill">
+                      <input type="radio" name="classes_paid" value="15" />
+                      <span>15 classes</span>
+                    </label>
+                  </div>
+                </div>
+                <div id="payment-error" class="error-msg hidden"></div>
+                <button type="submit" id="payment-btn">
+                  <span class="btn-text">Save changes</span>
+                  <span class="btn-loader hidden"></span>
+                </button>
+              </form>
+            </div>
+
+            <!-- Password card -->
+            <div class="profile-card">
+              <div class="profile-card-header">
+                <span class="profile-card-icon">🔒</span>
+                <h3>Change password</h3>
+              </div>
+              <p class="profile-card-note">
+                Changing your password will deactivate your account until an
+                admin reactivates it.
+              </p>
+              <form id="password-form" novalidate>
+                <div class="field">
+                  <label for="prof-new-password">New password</label>
+                  <input
+                    id="prof-new-password"
+                    type="password"
+                    placeholder="••••••••"
+                    autocomplete="new-password"
+                  />
+                </div>
+                <div class="field">
+                  <label for="prof-confirm-password">Confirm password</label>
+                  <input
+                    id="prof-confirm-password"
+                    type="password"
+                    placeholder="••••••••"
+                    autocomplete="new-password"
+                  />
+                </div>
+                <div id="password-error" class="error-msg hidden"></div>
+                <button type="submit" id="password-btn">
+                  <span class="btn-text">Update password</span>
+                  <span class="btn-loader hidden"></span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </main>
+      </section>
+
+      <!-- REGISTER CLASS MODAL -->
       <div id="modal-overlay" class="modal-overlay hidden">
         <div class="modal">
           <div class="modal-header">
@@ -173,7 +342,7 @@
         </div>
       </div>
 
-      <!-- CONFIRM MODAL -->
+      <!-- CONFIRM DELETE MODAL -->
       <div id="confirm-overlay" class="modal-overlay hidden">
         <div class="modal modal-sm">
           <div class="modal-header">

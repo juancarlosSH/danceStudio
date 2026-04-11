@@ -84,6 +84,16 @@ const getRemainingDays = async (req, res) => {
   }
 };
 
+const getProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await usersService.getProfile(id);
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(error.status || 500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   updatePassword,
@@ -91,4 +101,5 @@ module.exports = {
   getClassesTaken,
   getRemainingClasses,
   getRemainingDays,
+  getProfile,
 };

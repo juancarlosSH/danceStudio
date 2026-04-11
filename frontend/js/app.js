@@ -6,12 +6,16 @@ const state = {
   user: null,
   classes: [],
   pendingDeleteId: null,
+  calYear: new Date().getFullYear(),
+  calMonth: new Date().getMonth(),
 };
 
 // ── DOM refs ─────────────────────────────────────────────────
 const views = {
   login: document.getElementById("view-login"),
+  register: document.getElementById("view-register"),
   dashboard: document.getElementById("view-dashboard"),
+  profile: document.getElementById("view-profile"),
 };
 
 const el = {
@@ -22,9 +26,40 @@ const el = {
   loginBtn: document.getElementById("login-btn"),
   loginBtnText: document.querySelector("#login-btn .btn-text"),
   loginBtnLoader: document.querySelector("#login-btn .btn-loader"),
+  goRegister: document.getElementById("go-register"),
+
+  registerForm: document.getElementById("register-form"),
+  regName: document.getElementById("reg-name"),
+  regPassword: document.getElementById("reg-password"),
+  registerError: document.getElementById("register-error"),
+  registerSuccess: document.getElementById("register-success"),
+  registerBtn: document.getElementById("register-btn"),
+  registerBtnText: document.querySelector("#register-btn .btn-text"),
+  registerBtnLoader: document.querySelector("#register-btn .btn-loader"),
+  goLogin: document.getElementById("go-login"),
 
   dashUsername: document.getElementById("dash-username"),
   logoutBtn: document.getElementById("logout-btn"),
+  goProfileBtn: document.getElementById("go-profile-btn"),
+
+  profileUsername: document.getElementById("profile-username"),
+  profileLogoutBtn: document.getElementById("profile-logout-btn"),
+  goDashboardBtn: document.getElementById("go-dashboard-btn"),
+
+  paymentForm: document.getElementById("payment-form"),
+  profPaidAt: document.getElementById("prof-paid-at"),
+  paymentError: document.getElementById("payment-error"),
+  paymentBtn: document.getElementById("payment-btn"),
+  paymentBtnText: document.querySelector("#payment-btn .btn-text"),
+  paymentBtnLoader: document.querySelector("#payment-btn .btn-loader"),
+
+  passwordForm: document.getElementById("password-form"),
+  profNewPassword: document.getElementById("prof-new-password"),
+  profConfirmPassword: document.getElementById("prof-confirm-password"),
+  passwordError: document.getElementById("password-error"),
+  passwordBtn: document.getElementById("password-btn"),
+  passwordBtnText: document.querySelector("#password-btn .btn-text"),
+  passwordBtnLoader: document.querySelector("#password-btn .btn-loader"),
 
   cardTaken: document.getElementById("card-taken"),
   cardRemaining: document.getElementById("card-remaining"),
@@ -33,11 +68,18 @@ const el = {
   statRemaining: document.getElementById("stat-remaining"),
   statDays: document.getElementById("stat-days"),
 
+  quickBtns: document.querySelectorAll(".btn-quick"),
+
+  calTitle: document.getElementById("cal-title"),
+  calPrev: document.getElementById("cal-prev"),
+  calNext: document.getElementById("cal-next"),
+  calDays: document.getElementById("cal-days"),
+
   btnOpenRegister: document.getElementById("btn-open-register"),
   btnCancelRegister: document.getElementById("btn-cancel-register"),
   modalOverlay: document.getElementById("modal-overlay"),
   modalClose: document.getElementById("modal-close"),
-  registerForm: document.getElementById("register-class-form"),
+  registerClassForm: document.getElementById("register-class-form"),
   classType: document.getElementById("class-type"),
   classDate: document.getElementById("class-date"),
   classError: document.getElementById("class-error"),
@@ -62,6 +104,7 @@ function showView(name) {
   });
   views[name].classList.remove("hidden");
   views[name].classList.add("active");
+  window.scrollTo(0, 0);
 }
 
 // ── Toast ────────────────────────────────────────────────────
@@ -74,14 +117,14 @@ function showToast(msg, type = "success") {
   toastTimer = setTimeout(() => el.toast.classList.add("hidden"), 3000);
 }
 
-// ── Register modal ───────────────────────────────────────────
+// ── Register class modal ─────────────────────────────────────
 function openModal() {
   el.classDate.valueAsDate = new Date();
   el.modalOverlay.classList.remove("hidden");
 }
 function closeModal() {
   el.modalOverlay.classList.add("hidden");
-  el.registerForm.reset();
+  el.registerClassForm.reset();
   showError(el.classError, "");
 }
 
@@ -113,7 +156,7 @@ function hideSkeletons() {
   );
 }
 
-// ── Alert states on cards ────────────────────────────────────
+// ── Alert states ─────────────────────────────────────────────
 function applyCardAlerts(remaining, days) {
   el.cardRemaining.classList.remove("alert-warning", "alert-danger");
   el.cardDays.classList.remove("alert-warning", "alert-danger");
@@ -121,6 +164,74 @@ function applyCardAlerts(remaining, days) {
   else if (remaining <= 3) el.cardRemaining.classList.add("alert-warning");
   if (days <= 0) el.cardDays.classList.add("alert-danger");
   else if (days <= 5) el.cardDays.classList.add("alert-warning");
+}
+
+// ── Calendar ─────────────────────────────────────────────────
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function buildCalendarMap() {
+  const map = {};
+  state.classes.forEach((cls) => {
+    const d = new Date(cls.class_date);
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    if (!map[key]) map[key] = [];
+    if (!map[key].includes(cls.type)) map[key].push(cls.type);
+  });
+  return map;
+}
+
+function renderCalendar() {
+  const { calYear: y, calMonth: m } = state;
+  el.calTitle.textContent = `${MONTHS[m]} ${y}`;
+  const map = buildCalendarMap();
+  const today = new Date();
+  const first = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const prevDays = new Date(y, m, 0).getDate();
+  el.calDays.innerHTML = "";
+
+  for (let i = 0; i < first; i++) {
+    const d = document.createElement("div");
+    d.className = "cal-day other-month";
+    d.innerHTML = `<span>${prevDays - first + i + 1}</span><div class="cal-dots"></div>`;
+    el.calDays.appendChild(d);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const cell = document.createElement("div");
+    const isToday =
+      d === today.getDate() &&
+      m === today.getMonth() &&
+      y === today.getFullYear();
+    cell.className = `cal-day${isToday ? " today" : ""}`;
+    const key = `${y}-${m}-${d}`;
+    const types = map[key] || [];
+    const dots = types
+      .map((t) => `<span class="cal-dot dot-${t.toLowerCase()}"></span>`)
+      .join("");
+    cell.innerHTML = `<span>${d}</span><div class="cal-dots">${dots}</div>`;
+    el.calDays.appendChild(cell);
+  }
+  const total = first + daysInMonth;
+  const remaining = total % 7 === 0 ? 0 : 7 - (total % 7);
+  for (let i = 1; i <= remaining; i++) {
+    const d = document.createElement("div");
+    d.className = "cal-day other-month";
+    d.innerHTML = `<span>${i}</span><div class="cal-dots"></div>`;
+    el.calDays.appendChild(d);
+  }
 }
 
 // ── Auth ─────────────────────────────────────────────────────
@@ -131,7 +242,23 @@ async function login(name, password) {
     body: JSON.stringify({ name, password }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.message || "Login failed");
+  if (!res.ok) throw new Error(data.message || "Invalid credentials");
+  return data;
+}
+
+async function registerUser(name, password) {
+  const res = await fetch(`${API_URL}/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name,
+      password,
+      paid_at: new Date().toISOString().split("T")[0],
+      classes_paid: 0,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Registration failed");
   return data;
 }
 
@@ -181,6 +308,7 @@ async function loadClasses() {
   const data = await apiFetch(`/classes/user/${state.user.id}`);
   state.classes = data;
   renderClasses();
+  renderCalendar();
 }
 
 function updateCount() {
@@ -192,16 +320,15 @@ function updateCount() {
     el.classesCount.classList.add("hidden");
   }
 }
+
 function renderClasses() {
   el.classesTbody.querySelectorAll("tr[data-id]").forEach((r) => r.remove());
   updateCount();
-
   if (state.classes.length === 0) {
     el.classesEmptyRow.classList.remove("hidden");
     return;
   }
   el.classesEmptyRow.classList.add("hidden");
-
   state.classes.forEach((cls) => {
     const tr = document.createElement("tr");
     tr.dataset.id = cls.id;
@@ -223,6 +350,7 @@ async function registerClass(type, class_date) {
   });
   state.classes.unshift(data);
   renderClasses();
+  renderCalendar();
   await loadStats();
 }
 
@@ -230,7 +358,18 @@ async function deleteClass(id) {
   await apiFetch(`/classes/${id}`, { method: "DELETE" });
   state.classes = state.classes.filter((c) => c.id !== id);
   renderClasses();
+  renderCalendar();
   await loadStats();
+}
+
+// ── Profile ──────────────────────────────────────────────────
+async function loadProfileData() {
+  const res = await apiFetch(`/users/${state.user.id}/profile`);
+  el.profPaidAt.value = res.paid_at ? res.paid_at.split("T")[0] : "";
+  const radios = document.querySelectorAll('input[name="classes_paid"]');
+  radios.forEach((r) => {
+    r.checked = parseInt(r.value) === res.classes_paid;
+  });
 }
 
 // ── Utilities ────────────────────────────────────────────────
@@ -249,13 +388,33 @@ function showError(elRef, msg) {
   msg ? elRef.classList.remove("hidden") : elRef.classList.add("hidden");
 }
 
-function setLoginLoading(loading) {
-  el.loginBtnText.classList.toggle("hidden", loading);
-  el.loginBtnLoader.classList.toggle("hidden", !loading);
-  el.loginBtn.disabled = loading;
+function showSuccess(elRef, msg) {
+  elRef.textContent = msg;
+  msg ? elRef.classList.remove("hidden") : elRef.classList.add("hidden");
+}
+
+function setLoading(btnEl, textEl, loaderEl, loading) {
+  textEl.classList.toggle("hidden", loading);
+  loaderEl.classList.toggle("hidden", !loading);
+  btnEl.disabled = loading;
+}
+
+function todayString() {
+  return new Date().toISOString().split("T")[0];
 }
 
 // ── Event listeners ──────────────────────────────────────────
+el.goRegister.addEventListener("click", () => {
+  showError(el.loginError, "");
+  showView("register");
+});
+
+el.goLogin.addEventListener("click", () => {
+  showError(el.registerError, "");
+  showSuccess(el.registerSuccess, "");
+  showView("login");
+});
+
 el.loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = el.loginName.value.trim();
@@ -264,7 +423,7 @@ el.loginForm.addEventListener("submit", async (e) => {
     showError(el.loginError, "Name and password are required");
     return;
   }
-  setLoginLoading(true);
+  setLoading(el.loginBtn, el.loginBtnText, el.loginBtnLoader, true);
   showError(el.loginError, "");
   try {
     const { token } = await login(name, password);
@@ -274,6 +433,8 @@ el.loginForm.addEventListener("submit", async (e) => {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(state.user));
     el.dashUsername.textContent = state.user.name;
+    state.calYear = new Date().getFullYear();
+    state.calMonth = new Date().getMonth();
     showView("dashboard");
     showSkeletons();
     await Promise.all([loadStats(), loadClasses()]);
@@ -281,11 +442,139 @@ el.loginForm.addEventListener("submit", async (e) => {
   } catch (err) {
     showError(el.loginError, err.message);
   } finally {
-    setLoginLoading(false);
+    setLoading(el.loginBtn, el.loginBtnText, el.loginBtnLoader, false);
+  }
+});
+
+el.registerForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = el.regName.value.trim();
+  const password = el.regPassword.value;
+  if (!name || !password) {
+    showError(el.registerError, "Name and password are required");
+    return;
+  }
+  setLoading(el.registerBtn, el.registerBtnText, el.registerBtnLoader, true);
+  showError(el.registerError, "");
+  showSuccess(el.registerSuccess, "");
+  try {
+    await registerUser(name, password);
+    showSuccess(
+      el.registerSuccess,
+      "Account created. Ask your admin to activate it.",
+    );
+    el.registerForm.reset();
+  } catch (err) {
+    showError(el.registerError, err.message);
+  } finally {
+    setLoading(el.registerBtn, el.registerBtnText, el.registerBtnLoader, false);
   }
 });
 
 el.logoutBtn.addEventListener("click", logout);
+el.profileLogoutBtn.addEventListener("click", logout);
+
+el.goProfileBtn.addEventListener("click", async () => {
+  el.profileUsername.textContent = state.user.name;
+  showView("profile");
+  showError(el.paymentError, "");
+  showError(el.passwordError, "");
+  el.passwordForm.reset();
+  await loadProfileData();
+});
+
+el.goDashboardBtn.addEventListener("click", () => showView("dashboard"));
+
+el.paymentForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const paid_at = el.profPaidAt.value;
+  const classesPaidEl = document.querySelector(
+    'input[name="classes_paid"]:checked',
+  );
+  if (!paid_at || !classesPaidEl) {
+    showError(el.paymentError, "Payment date and classes paid are required");
+    return;
+  }
+  const classes_paid = parseInt(classesPaidEl.value);
+  setLoading(el.paymentBtn, el.paymentBtnText, el.paymentBtnLoader, true);
+  showError(el.paymentError, "");
+  try {
+    await apiFetch(`/users/${state.user.id}/payment`, {
+      method: "PATCH",
+      body: JSON.stringify({ paid_at, classes_paid }),
+    });
+    await loadStats();
+    showToast("Payment info updated", "success");
+  } catch (err) {
+    showError(el.paymentError, err.message);
+  } finally {
+    setLoading(el.paymentBtn, el.paymentBtnText, el.paymentBtnLoader, false);
+  }
+});
+
+el.passwordForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const newPassword = el.profNewPassword.value;
+  const confirmPassword = el.profConfirmPassword.value;
+  if (!newPassword || !confirmPassword) {
+    showError(el.passwordError, "Both fields are required");
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    showError(el.passwordError, "Passwords do not match");
+    return;
+  }
+  setLoading(el.passwordBtn, el.passwordBtnText, el.passwordBtnLoader, true);
+  showError(el.passwordError, "");
+  try {
+    await apiFetch(`/users/${state.user.id}/password`, {
+      method: "PATCH",
+      body: JSON.stringify({ password: newPassword }),
+    });
+    showToast(
+      "Password updated. Your account has been deactivated.",
+      "success",
+    );
+    el.passwordForm.reset();
+    setTimeout(logout, 2500);
+  } catch (err) {
+    showError(el.passwordError, err.message);
+  } finally {
+    setLoading(el.passwordBtn, el.passwordBtnText, el.passwordBtnLoader, false);
+  }
+});
+
+el.quickBtns.forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const type = btn.dataset.type;
+    btn.classList.add("loading");
+    try {
+      await registerClass(type, todayString());
+      showToast(`${type} class registered`, "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      btn.classList.remove("loading");
+    }
+  });
+});
+
+el.calPrev.addEventListener("click", () => {
+  state.calMonth--;
+  if (state.calMonth < 0) {
+    state.calMonth = 11;
+    state.calYear--;
+  }
+  renderCalendar();
+});
+el.calNext.addEventListener("click", () => {
+  state.calMonth++;
+  if (state.calMonth > 11) {
+    state.calMonth = 0;
+    state.calYear++;
+  }
+  renderCalendar();
+});
 
 el.btnOpenRegister.addEventListener("click", openModal);
 el.modalClose.addEventListener("click", closeModal);
@@ -294,7 +583,7 @@ el.modalOverlay.addEventListener("click", (e) => {
   if (e.target === el.modalOverlay) closeModal();
 });
 
-el.registerForm.addEventListener("submit", async (e) => {
+el.registerClassForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const type = el.classType.value;
   const class_date = el.classDate.value;
@@ -345,6 +634,8 @@ el.confirmDelete.addEventListener("click", async () => {
       state.token = savedToken;
       state.user = JSON.parse(savedUser);
       el.dashUsername.textContent = state.user.name;
+      state.calYear = new Date().getFullYear();
+      state.calMonth = new Date().getMonth();
       showView("dashboard");
       showSkeletons();
       await Promise.all([loadStats(), loadClasses()]);
