@@ -1,14 +1,16 @@
-const { Sequelize } = require("sequelize");
-require("dotenv").config();
+import { Sequelize } from 'sequelize';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
+  process.env.DB_NAME as string,
+  process.env.DB_USER as string,
+  process.env.DB_PASSWORD as string,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    dialect: "postgres",
+    port: Number(process.env.DB_PORT),
+    dialect: 'postgres',
     logging: false,
     dialectOptions: {
       statement_timeout: 5000,
@@ -20,7 +22,7 @@ const sequelize = new Sequelize(
       acquire: 30000,
       idle: 10000,
     },
-  },
+  }
 );
 
-module.exports = sequelize;
+export default sequelize;
