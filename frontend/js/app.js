@@ -436,7 +436,8 @@ async function loadProfileData() {
 // ── Utilities ─────────────────────────────────────────────────
 function formatDate(dateStr) {
   if (!dateStr) return "—";
-  const d = new Date(dateStr);
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
   const locale = currentLang === "es" ? "es-MX" : "en-US";
   return d.toLocaleDateString(locale, {
     year: "numeric",
@@ -462,7 +463,11 @@ function setLoading(btnEl, textEl, loaderEl, loading) {
 }
 
 function todayString() {
-  return new Date().toISOString().split("T")[0];
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 // ── Event listeners ───────────────────────────────────────────

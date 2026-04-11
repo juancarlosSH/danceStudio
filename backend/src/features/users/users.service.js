@@ -13,8 +13,8 @@ const registerUser = async ({ name, password, paid_at, classes_paid }) => {
 
   const [user] = await sequelize.query(
     `INSERT INTO users (name, password, paid_at, classes_paid)
-     VALUES (:name, :password, :paid_at, :classes_paid)
-     RETURNING id, name, paid_at, classes_paid, is_active, created_at`,
+     VALUES (:name, :password, :paid_at::date, :classes_paid)
+     RETURNING id, name, TO_CHAR(paid_at, 'YYYY-MM-DD') AS paid_at, classes_paid, is_active, created_at`,
     {
       replacements: { name, password: hashed, paid_at, classes_paid },
       type: QueryTypes.INSERT,
@@ -37,7 +37,7 @@ const updatePassword = async (id, newPassword) => {
 
 const updatePayment = async (id, { paid_at, classes_paid }) => {
   await sequelize.query(
-    "UPDATE users SET paid_at = :paid_at, classes_paid = :classes_paid WHERE id = :id",
+    "UPDATE users SET paid_at = :paid_at::date, classes_paid = :classes_paid WHERE id = :id",
     { replacements: { paid_at, classes_paid, id }, type: QueryTypes.UPDATE },
   );
   return { message: "Payment info updated" };
@@ -45,14 +45,14 @@ const updatePayment = async (id, { paid_at, classes_paid }) => {
 
 const getClassesTaken = async (id) => {
   const [user] = await sequelize.query(
-    "SELECT paid_at FROM users WHERE id = :id LIMIT 1",
+    `SELECT TO_CHAR(paid_at, 'YYYY-MM-DD') AS paid_at FROM users WHERE id = :id LIMIT 1`,
     { replacements: { id }, type: QueryTypes.SELECT },
   );
   if (!user) throw { status: 404, message: "User not found" };
 
   const [result] = await sequelize.query(
     `SELECT COUNT(*) AS count FROM dance_classes
-     WHERE user_id = :id AND class_date >= :paid_at`,
+     WHERE user_id = :id AND class_date >= :paid_at::date`,
     { replacements: { id, paid_at: user.paid_at }, type: QueryTypes.SELECT },
   );
 
@@ -61,14 +61,14 @@ const getClassesTaken = async (id) => {
 
 const getRemainingClasses = async (id) => {
   const [user] = await sequelize.query(
-    "SELECT paid_at, classes_paid FROM users WHERE id = :id LIMIT 1",
+    `SELECT TO_CHAR(paid_at, 'YYYY-MM-DD') AS paid_at, classes_paid FROM users WHERE id = :id LIMIT 1`,
     { replacements: { id }, type: QueryTypes.SELECT },
   );
   if (!user) throw { status: 404, message: "User not found" };
 
   const [result] = await sequelize.query(
     `SELECT COUNT(*) AS count FROM dance_classes
-     WHERE user_id = :id AND class_date >= :paid_at`,
+     WHERE user_id = :id AND class_date >= :paid_at::date`,
     { replacements: { id, paid_at: user.paid_at }, type: QueryTypes.SELECT },
   );
 
@@ -83,30 +83,28 @@ const getRemainingClasses = async (id) => {
 };
 
 const getRemainingDays = async (id) => {
-  const [user] = await sequelize.query(
-    "SELECT paid_at FROM users WHERE id = :id LIMIT 1",
+  const [result] = await sequelize.query(
+    `SELECT
+       TO_CHAR(paid_at, 'YYYY-MM-DD') AS paid_at,
+       (paid_at + INTERVAL '1 month')::date - CURRENT_DATE AS days_remaining,
+       TO_CHAR(paid_at + INTERVAL '1 month', 'YYYY-MM-DD') AS next_payment_date
+     FROM users
+     WHERE id = :id
+     LIMIT 1`,
     { replacements: { id }, type: QueryTypes.SELECT },
   );
-  if (!user) throw { status: 404, message: "User not found" };
-
-  const paidAt = new Date(user.paid_at);
-  const nextPayment = new Date(paidAt);
-  nextPayment.setMonth(nextPayment.getMonth() + 1);
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const diff = Math.ceil((nextPayment - today) / (1000 * 60 * 60 * 24));
+  if (!result) throw { status: 404, message: "User not found" };
 
   return {
-    next_payment_date: nextPayment.toISOString().split("T")[0],
-    days_remaining: diff,
+    next_payment_date: result.next_payment_date,
+    days_remaining: parseInt(result.days_remaining),
   };
 };
 
 const getProfile = async (id) => {
   const [user] = await sequelize.query(
-    "SELECT id, name, paid_at, classes_paid FROM users WHERE id = :id LIMIT 1",
+    `SELECT id, name, TO_CHAR(paid_at, 'YYYY-MM-DD') AS paid_at, classes_paid
+     FROM users WHERE id = :id LIMIT 1`,
     { replacements: { id }, type: QueryTypes.SELECT },
   );
   if (!user) throw { status: 404, message: "User not found" };
