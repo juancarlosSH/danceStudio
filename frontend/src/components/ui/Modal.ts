@@ -14,7 +14,9 @@ export function closeOverlay(id: string): void {
 export function openRegisterModal(): void {
   const dateInput = document.getElementById('class-date') as HTMLInputElement | null;
   if (dateInput) {
-    dateInput.value = todayLocal();
+    const today = todayLocal();
+    dateInput.value = today;
+    dateInput.max   = today;
   }
   openOverlay('modal-overlay');
 }

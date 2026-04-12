@@ -100,7 +100,7 @@ const en: Translations = {
 
   cardClassesTaken:     'Classes taken',
   cardClassesRemaining: 'Classes remaining',
-  cardDaysPayment:      'Days to next payment',
+  cardDaysPayment:      'Days remaining until the next payment',
 
   btnBachata:           'Bachata',
   btnSalsa:             'Salsa',
@@ -174,7 +174,7 @@ const es: Translations = {
 
   cardClassesTaken:     'Clases tomadas',
   cardClassesRemaining: 'Clases restantes',
-  cardDaysPayment:      'Días para siguiente pago',
+  cardDaysPayment:      'Días restantes para el próximo pago',
 
   btnBachata:           'Bachata',
   btnSalsa:             'Salsa',

@@ -1,3 +1,4 @@
+import { todayLocal } from '../../services/api';
 import { ProfileData } from '../../types';
 import { t } from '../../state/store';
 
@@ -19,7 +20,10 @@ function setLoading(loading: boolean): void {
 
 export function populatePaymentForm(profile: ProfileData): void {
   const paidAt = document.getElementById('prof-paid-at') as HTMLInputElement | null;
-  if (paidAt) paidAt.value = profile.paid_at ?? '';
+  if (paidAt) {
+    paidAt.value = profile.paid_at ?? '';
+    paidAt.max   = todayLocal();
+  }
 
   document.querySelectorAll<HTMLInputElement>('input[name="classes_paid"]').forEach(r => {
     r.checked = parseInt(r.value) === profile.classes_paid;
