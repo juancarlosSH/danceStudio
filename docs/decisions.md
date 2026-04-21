@@ -1,0 +1,131 @@
+# Architecture Decision Records
+
+This file collects architectural decisions made on the danceStudio project.
+Each ADR captures the context (why we had to decide something), the decision
+itself, the alternatives considered, and the consequences — both the ones we
+accepted and the ones we are aware of.
+
+ADRs are append-only. When a decision is superseded, a new ADR is added that
+explicitly references and supersedes the older one; the old one is not edited
+or deleted.
+
+---
+
+## ADR-001 — Fix IDOR by replacing `/users/:id/*` with `/users/me/*` and taking ownership from the JWT
+
+- **Date:** 2026-04-20
+- **Status:** Accepted
+- **Related points:** Prioridad Alta, punto 1 of the project improvement plan.
+
+### Context
+
+An audit of the authenticated API surface uncovered Insecure Direct Object
+Reference (IDOR) vulnerabilities on every endpoint that accepted a user id
+from the client. The `authMiddleware` correctly verified the JWT and populated
+`req.user`, but no handler ever compared `req.user.id` against the id supplied
+by the client (either via `req.params.id`, `req.params.user_id`, or `req.body.user_id`).
+
+Concretely, before this change:
+
+| Endpoint                                                    | Id source        | Impact if abused                                                                               |
+| ----------------------------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
+| `PATCH /users/:id/password`                                 | URL              | A logged-in user could change any other user's password and deactivate their account.          |
+| `PATCH /users/:id/payment`                                  | URL              | Tamper another user's payment date and class quota.                                            |
+| `GET /users/:id/profile` and the other `/users/:id/*` reads | URL              | Data exfiltration of name, payment date, plan, class counts.                                   |
+| `POST /classes`                                             | Body (`user_id`) | Log a class against another user's account, consuming their quota.                             |
+| `GET /classes/user/:user_id`                                | URL              | Read another user's class history.                                                             |
+| `DELETE /classes/:id`                                       | URL              | Delete another user's classes. The service only checked the class existed, never who owned it. |
+
+The root cause is the same across all nine endpoints: the identity of the
+"subject" of the operation was being read from a client-controlled place
+instead of from the verified JWT.
+
+### Decision
+
+1. **For operations on the authenticated user themselves, use `/users/me/*`.**
+   Handlers read the id exclusively from `req.user.id`. The client never
+   supplies an identifier for these endpoints, so there is nothing to tamper
+   with.
+
+2. **For `POST /classes`, take `user_id` from `req.user.id`, not from the body.**
+   The request body is reduced to `{ type, class_date }`. Validation no
+   longer accepts or requires `user_id`.
+
+3. **For `DELETE /classes/:id`, enforce ownership inside the SQL.**
+   The DELETE carries `WHERE id = :id AND user_id = :user_id` and uses
+   PostgreSQL's `RETURNING` to report deleted rows. Non-owned or non-existent
+   ids both return 404 with the message `"Class not found"`. This avoids
+   leaking the existence of class ids that belong to other users.
+
+4. **For listing classes, replace `GET /classes/user/:user_id` with `GET /classes/mine`.**
+   Same rationale as `/users/me/*`: no client-supplied id means no tampering.
+
+5. **Admin-only operations (activating accounts, listing users, etc.) are
+   explicitly out of scope for this ADR.** When they land, they will live
+   under a separate surface (probably `/admin/*`) behind a role-checking
+   middleware. They will be the _only_ place where an admin operates on a
+   user by id — and the authorization decision will be made by that role
+   middleware, not by URL shape.
+
+### Alternatives considered
+
+- **Keep `/users/:id/*` and add an `ensureSelf` middleware** that compares
+  `req.user.id === Number(req.params.id)` on every protected route.
+  _Rejected_ because the protection would be opt-in per route: any future
+  route that forgets the middleware reintroduces the bug. With `/me/*`, the
+  protection is structural — no client-supplied id exists to misuse.
+
+- **Query-param scoping (`?user_id=...`) with a guard.**
+  Rejected for the same reason: still opt-in, still depends on a guard being
+  applied everywhere.
+
+- **Full RBAC/ABAC framework (CASL, accesscontrol, etc.).**
+  Rejected for this stage: overkill for two roles (self / admin). We will
+  revisit if the role surface grows beyond that.
+
+### Consequences
+
+**Accepted:**
+
+- This is a breaking change to the API. The frontend will need updates in a
+  later work item. Because this is a personal/local project with no other
+  consumers, the cost is acceptable.
+- `AuthRequest` is now defined exactly once, in `middlewares/authMiddleware.ts`,
+  and its `user` field is non-optional. A duplicate copy in `types/index.ts`
+  — which incorrectly extended the global DOM `Request` instead of the
+  Express one — was removed.
+- Handlers cast `req` to `AuthRequest` to access `req.user`. This is a
+  pragmatic choice given Express's loose typing; a cleaner long-term approach
+  is Express's module-augmentation pattern on `Request`, which we can adopt
+  if we add more authenticated middlewares.
+- `classesService.registerClass` no longer verifies the user exists before
+  inserting, because `user_id` now comes from a just-verified JWT. The
+  database foreign key remains as a last line of defense.
+- `classesService.deleteClass` was renamed to `deleteClassForUser(classId, userId)`
+  to make the ownership check an unavoidable part of the function signature.
+  There is no longer a function that deletes a class by id alone.
+
+**Not yet addressed (tracked for later points):**
+
+- **Input validation is still hand-rolled.** Planned for Prioridad Alta,
+  punto 6 (migrate to Zod).
+- **Rate limiting** (punto 2), **helmet** (punto 3), **password recovery
+  flow** (punto 4), and **admin panel** (punto 5) are separate work items
+  and their own ADRs.
+- **JWT revocation.** We still cannot invalidate a leaked token before its
+  expiry. Mitigation today: short TTL (8h) and the "change password
+  deactivates account" rule. A proper solution (jti denylist, refresh token
+  rotation) is out of scope here.
+
+### How to verify the fix
+
+1. Register two users `alice` and `bob`, activate both in the DB.
+2. Log in as `alice`, get her JWT.
+3. Try the previously-vulnerable operations and confirm they either hit only
+   `alice`'s own data (`/me/*`) or return 404 for `bob`'s resources:
+   - `GET /users/me/profile` returns `alice`'s profile. There is no way to
+     ask for `bob`'s profile via this route.
+   - `POST /classes` with `{ type, class_date }` logs a class for `alice`.
+     Any `user_id` field in the body is silently ignored.
+   - `DELETE /classes/:id` with one of `bob`'s class ids returns 404 — the
+     response is indistinguishable from a non-existent id, by design.

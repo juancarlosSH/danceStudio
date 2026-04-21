@@ -25,6 +25,7 @@ export interface JwtPayload {
   exp?: number;
 }
 
-export interface AuthRequest extends Request {
-  user?: JwtPayload;
-}
+// NOTE: `AuthRequest` used to live here too, but it imported the global DOM
+// `Request` instead of the Express one, which caused latent typing bugs.
+// It is now defined once, correctly, in `middlewares/authMiddleware.ts`.
+// See ADR-001 in docs/DECISIONS.md for context.

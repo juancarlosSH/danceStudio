@@ -13,11 +13,9 @@ export const registerClass = async (data: {
     throw { status: 400, message: `type must be one of: ${VALID_TYPES.join(', ')}` };
   }
 
-  const [user] = await sequelize.query<{ id: number }>(
-    'SELECT id FROM users WHERE id = :user_id LIMIT 1',
-    { replacements: { user_id: data.user_id }, type: QueryTypes.SELECT }
-  );
-  if (!user) throw { status: 404, message: 'User not found' };
+  // We no longer verify that the user exists before inserting: user_id comes
+  // from a JWT we just verified, and users cannot delete themselves. The DB
+  // foreign key will raise if the user somehow vanished, which is acceptable.
 
   const [rows] = await sequelize.query(
     `INSERT INTO dance_classes (type, class_date, user_id)
@@ -32,17 +30,30 @@ export const registerClass = async (data: {
   return (rows as DanceClass[])[0];
 };
 
-export const deleteClass = async (id: number): Promise<{ message: string }> => {
-  const [existing] = await sequelize.query<{ id: number }>(
-    'SELECT id FROM dance_classes WHERE id = :id LIMIT 1',
-    { replacements: { id }, type: QueryTypes.SELECT }
+/**
+ * Deletes a class only if it belongs to `userId`.
+ *
+ * Implementation note: the DELETE carries the ownership check in its WHERE
+ * clause and uses PostgreSQL's RETURNING to report which rows it actually
+ * removed. This is atomic (no SELECT-then-DELETE race) and does not
+ * distinguish between "class does not exist" and "class exists but is not
+ * yours" — both return 404. That is intentional: returning 403 for the
+ * second case would leak the existence of class ids belonging to other users.
+ *
+ * Why RETURNING rather than affected-row count: Sequelize's affected-row
+ * metadata for raw queries is dialect-specific and historically flaky;
+ * RETURNING is native Postgres and gives us a typed, unambiguous result.
+ */
+export const deleteClassForUser = async (
+  classId: number,
+  userId: number
+): Promise<{ message: string }> => {
+  const deleted = await sequelize.query<{ id: number }>(
+    'DELETE FROM dance_classes WHERE id = :id AND user_id = :user_id RETURNING id',
+    { replacements: { id: classId, user_id: userId }, type: QueryTypes.SELECT }
   );
-  if (!existing) throw { status: 404, message: 'Class not found' };
 
-  await sequelize.query(
-    'DELETE FROM dance_classes WHERE id = :id',
-    { replacements: { id }, type: QueryTypes.DELETE }
-  );
+  if (deleted.length === 0) throw { status: 404, message: 'Class not found' };
 
   return { message: 'Class deleted' };
 };
