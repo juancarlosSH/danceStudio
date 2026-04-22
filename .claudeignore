@@ -1,0 +1,58 @@
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Builds y artefactos
+dist/
+build/
+**/dist/
+**/build/
+*.tsbuildinfo
+
+# Variables de entorno (contienen secretos)
+.env
+.env.*
+!.env.example
+
+# Datos de Postgres (volumen de Docker)
+db_data/
+**/db_data/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+
+# Caché
+.cache/
+.npm/
+.eslintcache
+
+# Archivos temporales
+*.tmp
+*.swp
+*~
+
+# Lock files (opcional — si quieres que Claude los lea, quita estas líneas)
+package-lock.json
+yarn.lock
+
+# Coverage de tests
+coverage/
+.nyc_output/
+
+# Git
+.git/

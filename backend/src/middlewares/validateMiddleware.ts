@@ -37,18 +37,19 @@ export const validateUpdatePayment = (req: Request, res: Response, next: NextFun
   next();
 };
 
+// NOTE: `user_id` is intentionally NOT validated here anymore — it no longer
+// comes from the request body. The authenticated user's id is now taken from
+// `req.user.id` (set by authMiddleware), which closes an IDOR where a client
+// could log a class against another user's account.
+// See ADR-001 in docs/DECISIONS.md.
 export const validateRegisterClass = (req: Request, res: Response, next: NextFunction): void => {
-  const { type, class_date, user_id } = req.body;
+  const { type, class_date } = req.body;
   if (!VALID_TYPES.includes(type)) {
     res.status(400).json({ message: `type must be one of: ${VALID_TYPES.join(', ')}` });
     return;
   }
   if (!class_date || !DATE_REGEX.test(class_date)) {
     res.status(400).json({ message: 'class_date must be a valid date YYYY-MM-DD' });
-    return;
-  }
-  if (!user_id || isNaN(Number(user_id))) {
-    res.status(400).json({ message: 'user_id must be a valid number' });
     return;
   }
   next();

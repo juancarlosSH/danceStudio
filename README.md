@@ -173,16 +173,16 @@ docker exec -it dance_db psql -U dance_user -d dance_registration -c \
 
 ## API Endpoints
 
-| Method | Endpoint                       | Auth | Description                           |
-| ------ | ------------------------------ | ---- | ------------------------------------- |
-| POST   | `/auth/login`                  | ❌   | Login                                 |
-| POST   | `/users`                       | ❌   | Register user                         |
-| PATCH  | `/users/:id/password`          | ✅   | Update password (deactivates account) |
-| PATCH  | `/users/:id/payment`           | ✅   | Update payment date and classes paid  |
-| GET    | `/users/:id/classes-taken`     | ✅   | Classes taken since payment date      |
-| GET    | `/users/:id/classes-remaining` | ✅   | Classes remaining                     |
-| GET    | `/users/:id/days-remaining`    | ✅   | Days until next payment               |
-| GET    | `/users/:id/profile`           | ✅   | User profile data                     |
-| POST   | `/classes`                     | ✅   | Register a class                      |
-| GET    | `/classes/user/:user_id`       | ✅   | Class history for a user              |
-| DELETE | `/classes/:id`                 | ✅   | Delete a class                        |
+| Method | Endpoint                        | Auth | Description                           |
+| ------ | ------------------------------- | ---- | ------------------------------------- |
+| POST   | `/auth/login`                   | ❌   | Login                                 |
+| POST   | `/users`                        | ❌   | Register user                         |
+| PATCH  | `/users/me/password`            | ✅   | Update password (deactivates account) |
+| PATCH  | `/users/me/payment`             | ✅   | Update payment date and classes paid  |
+| GET    | `/users/me/classes-taken`       | ✅   | Classes taken since payment date      |
+| GET    | `/users/me/classes-remaining`   | ✅   | Classes remaining                     |
+| GET    | `/users/me/days-remaining`      | ✅   | Days until next payment               |
+| GET    | `/users/me/profile`             | ✅   | User profile data                     |
+| POST   | `/classes`                      | ✅   | Register a class                      |
+| GET    | `/classes/mine`                 | ✅   | Class history for the authenticated user |
+| DELETE | `/classes/:id`                  | ✅   | Delete a class                        |

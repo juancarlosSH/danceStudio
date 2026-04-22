@@ -8,6 +8,17 @@ import {
   getRemainingDays,
   getProfile,
 } from './usersService';
+import { AuthRequest } from '../../middlewares/authMiddleware';
+
+/**
+ * All /me/* handlers read the user id from `req.user.id` (populated by
+ * authMiddleware from the verified JWT), never from the URL or body.
+ *
+ * This makes IDOR impossible by construction: there is no client-supplied
+ * identifier for these endpoints to tamper with.
+ *
+ * See ADR-001 in docs/DECISIONS.md.
+ */
 
 export const registerUserHandler = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -21,7 +32,7 @@ export const registerUserHandler = async (req: Request, res: Response): Promise<
 
 export const updatePasswordHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    const id = Number(req.params.id);
+    const id = (req as AuthRequest).user.id;
     const { password } = req.body;
     if (!password) { res.status(400).json({ message: 'password is required' }); return; }
     const result = await updatePassword(id, password);
@@ -33,7 +44,7 @@ export const updatePasswordHandler = async (req: Request, res: Response): Promis
 
 export const updatePaymentHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    const id = Number(req.params.id);
+    const id = (req as AuthRequest).user.id;
     const { paid_at, classes_paid } = req.body;
     const result = await updatePayment(id, paid_at, Number(classes_paid));
     res.status(200).json(result);
@@ -44,7 +55,8 @@ export const updatePaymentHandler = async (req: Request, res: Response): Promise
 
 export const getClassesTakenHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await getClassesTaken(Number(req.params.id));
+    const id = (req as AuthRequest).user.id;
+    const result = await getClassesTaken(id);
     res.status(200).json(result);
   } catch (error: any) {
     res.status(error.status ?? 500).json({ message: error.message });
@@ -53,7 +65,8 @@ export const getClassesTakenHandler = async (req: Request, res: Response): Promi
 
 export const getRemainingClassesHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await getRemainingClasses(Number(req.params.id));
+    const id = (req as AuthRequest).user.id;
+    const result = await getRemainingClasses(id);
     res.status(200).json(result);
   } catch (error: any) {
     res.status(error.status ?? 500).json({ message: error.message });
@@ -62,7 +75,8 @@ export const getRemainingClassesHandler = async (req: Request, res: Response): P
 
 export const getRemainingDaysHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await getRemainingDays(Number(req.params.id));
+    const id = (req as AuthRequest).user.id;
+    const result = await getRemainingDays(id);
     res.status(200).json(result);
   } catch (error: any) {
     res.status(error.status ?? 500).json({ message: error.message });
@@ -71,7 +85,8 @@ export const getRemainingDaysHandler = async (req: Request, res: Response): Prom
 
 export const getProfileHandler = async (req: Request, res: Response): Promise<void> => {
   try {
-    const result = await getProfile(Number(req.params.id));
+    const id = (req as AuthRequest).user.id;
+    const result = await getProfile(id);
     res.status(200).json(result);
   } catch (error: any) {
     res.status(error.status ?? 500).json({ message: error.message });
