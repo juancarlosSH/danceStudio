@@ -41,48 +41,48 @@ export async function apiRegisterUser(name: string, password: string): Promise<v
   });
 }
 
-export async function apiGetClassesTaken(id: number): Promise<{ classes_taken: number }> {
-  return request(`/users/${id}/classes-taken`);
+export async function apiGetClassesTaken(): Promise<{ classes_taken: number }> {
+  return request(`/users/me/classes-taken`);
 }
 
-export async function apiGetRemainingClasses(id: number): Promise<{
+export async function apiGetRemainingClasses(): Promise<{
   classes_paid: number;
   classes_taken: number;
   classes_remaining: number;
 }> {
-  return request(`/users/${id}/classes-remaining`);
+  return request(`/users/me/classes-remaining`);
 }
 
-export async function apiGetRemainingDays(id: number): Promise<{
+export async function apiGetRemainingDays(): Promise<{
   days_remaining: number;
   next_payment_date: string;
 }> {
-  return request(`/users/${id}/days-remaining`);
+  return request(`/users/me/days-remaining`);
 }
 
-export async function apiGetProfile(id: number): Promise<ProfileData> {
-  return request(`/users/${id}/profile`);
+export async function apiGetProfile(): Promise<ProfileData> {
+  return request(`/users/me/profile`);
 }
 
-export async function apiUpdatePayment(id: number, paid_at: string, classes_paid: number): Promise<void> {
-  await request(`/users/${id}/payment`, {
+export async function apiUpdatePayment(paid_at: string, classes_paid: number): Promise<void> {
+  await request(`/users/me/payment`, {
     method: 'PATCH',
     body: JSON.stringify({ paid_at, classes_paid }),
   });
 }
 
-export async function apiUpdatePassword(id: number, password: string): Promise<void> {
-  await request(`/users/${id}/password`, {
+export async function apiUpdatePassword(password: string): Promise<void> {
+  await request(`/users/me/password`, {
     method: 'PATCH',
     body: JSON.stringify({ password }),
   });
 }
 
-export async function apiLoadStats(id: number): Promise<StatsData> {
+export async function apiLoadStats(): Promise<StatsData> {
   const [taken, remaining, days] = await Promise.all([
-    apiGetClassesTaken(id),
-    apiGetRemainingClasses(id),
-    apiGetRemainingDays(id),
+    apiGetClassesTaken(),
+    apiGetRemainingClasses(),
+    apiGetRemainingDays(),
   ]);
   return {
     classes_taken:     taken.classes_taken,
@@ -94,14 +94,14 @@ export async function apiLoadStats(id: number): Promise<StatsData> {
 }
 
 // ── Classes ───────────────────────────────────────────────────
-export async function apiGetClassesByUser(user_id: number): Promise<DanceClass[]> {
-  return request(`/classes/user/${user_id}`);
+export async function apiGetMyClasses(): Promise<DanceClass[]> {
+  return request(`/classes/mine`);
 }
 
-export async function apiRegisterClass(type: DanceType, class_date: string, user_id: number): Promise<DanceClass> {
+export async function apiRegisterClass(type: DanceType, class_date: string): Promise<DanceClass> {
   return request('/classes', {
     method: 'POST',
-    body: JSON.stringify({ type, class_date, user_id }),
+    body: JSON.stringify({ type, class_date }),
   });
 }
 
