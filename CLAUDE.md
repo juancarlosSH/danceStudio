@@ -1,33 +1,33 @@
 # Dance Studio
 
-Sistema de registro de clases para un estudio de danza. Los alumnos se registran, logean sus clases y tracking de progreso. El dueño del estudio administra cuentas.
+A class registration system for a dance studio. Students register, log their classes, and track their progress. The studio owner manages accounts directly.
 
 ---
 
-## Stack Tecnológico
+## Tech Stack
 
-| Capa            | Tecnología                                       |
-| --------------- | ------------------------------------------------ |
-| Base de datos   | PostgreSQL 16                                    |
-| Backend         | Node.js 20+, Express, TypeScript, Sequelize, JWT |
-| Frontend        | Vanilla TypeScript, esbuild, nginx               |
-| Infraestructura | Docker, Docker Compose                           |
+| Layer          | Technology                                       |
+| -------------- | ------------------------------------------------ |
+| Database       | PostgreSQL 16                                    |
+| Backend        | Node.js 20+, Express, TypeScript, Sequelize, JWT |
+| Frontend       | Vanilla TypeScript, esbuild, nginx               |
+| Infrastructure | Docker, Docker Compose                           |
 
 ---
 
-## Estructura del proyecto
+## Project Structure
 
 danceStudio/
 ├── docker-compose.yml
 ├── .env
 ├── db/
-│ └── init.sql # Schema inicial de PostgreSQL
+│ └── init.sql # Initial PostgreSQL schema
 ├── backend/
 │ ├── Dockerfile
 │ ├── src/
-│ │ ├── app.ts # Entry point de Express
-│ │ ├── config/ # Config de DB, JWT, etc.
-│ │ ├── features/ # Organizado por dominio, NO por capas
+│ │ ├── app.ts # Express entry point
+│ │ ├── config/ # DB, JWT, etc. config
+│ │ ├── features/ # Organized by domain, NOT by layer
 │ │ │ ├── auth/
 │ │ │ ├── users/
 │ │ │ └── classes/
@@ -36,13 +36,13 @@ danceStudio/
 │ └── tsconfig.json
 └── frontend/
 ├── Dockerfile
-├── build.mjs # Script de build con esbuild
+├── build.mjs # esbuild script
 ├── src/
 │ ├── app.ts
 │ ├── components/
 │ ├── views/
-│ ├── services/ # Llamadas a la API
-│ ├── state/ # Estado global del cliente
+│ ├── services/ # API calls
+│ ├── state/ # Global client state
 │ ├── i18n/ # ES / EN
 │ ├── types/
 │ └── styles/
@@ -50,65 +50,65 @@ danceStudio/
 
 ---
 
-## Modelo de dominio
+## Domain Model
 
-- **users**: cuenta del alumno. Campos relevantes: `id`, `name`, `password`, `is_active`, `payment_date`, `classes_paid` (12 o 15), `role` (actualmente no existe, probablemente hay que añadirlo).
-- **classes**: clase registrada. Campos: `id`, `user_id`, `type` (bachata | salsa | cumbia), `date`.
-- Relación: `users` 1 — N `classes`.
+- **users**: student account. Relevant fields: `id`, `name`, `password`, `is_active`, `payment_date`, `classes_paid` (12 or 15).
+- **classes**: registered class. Fields: `id`, `user_id`, `type` (bachata | salsa | cumbia), `date`.
+- Relationship: `users` 1 — N `classes`.
 
 ---
 
-## Reglas de negocio importantes
+## Business Rules
 
-- Las cuentas se crean inactivas. **Actualmente** un admin las activa haciendo `UPDATE users SET is_active = true` directamente en la BD (esto es un pendiente a refactorizar).
-- Cambiar la contraseña **desactiva la cuenta** (también es un anti-patrón a revisar).
-- "Clases tomadas" se cuenta desde la última `payment_date`.
-- "Clases restantes" = `classes_paid` − clases tomadas desde el pago.
-- "Días restantes" = días hasta la siguiente fecha de pago (payment_date + 30 días, asumiendo mensualidad).
-- Los paquetes son 12 o 15 clases, hardcodeado. Si se vuelve flexible, considerar tabla `plans`.
+- Accounts are created inactive. The studio owner activates them with `UPDATE users SET is_active = true` directly in the DB. **This is an intentional design decision** — see ADR-002.
+- Changing the password **deactivates the account**. **This is an intentional design decision** — see ADR-003.
+- "Classes taken" is counted from the last `payment_date`.
+- "Classes remaining" = `classes_paid` − classes taken since payment.
+- "Days remaining" = days until the next payment date (payment_date + 30 days, monthly billing).
+- Packages are 12 or 15 classes, hardcoded. If flexibility is needed in the future, consider a `plans` table.
 
 ---
 
 ## API Endpoints
 
-| Método | Endpoint                        | Auth | Descripción                               |
-| ------ | ------------------------------- | ---- | ----------------------------------------- |
-| POST   | `/auth/login`                   | ❌   | Login                                     |
-| POST   | `/users`                        | ❌   | Registrar usuario (queda inactivo)        |
-| PATCH  | `/users/me/password`            | ✅   | Cambiar contraseña (desactiva cuenta)     |
-| PATCH  | `/users/me/payment`             | ✅   | Actualizar fecha de pago y clases pagadas |
-| GET    | `/users/me/classes-taken`       | ✅   | Clases tomadas desde el pago              |
-| GET    | `/users/me/classes-remaining`   | ✅   | Clases restantes                          |
-| GET    | `/users/me/days-remaining`      | ✅   | Días hasta próximo pago                   |
-| GET    | `/users/me/profile`             | ✅   | Perfil del usuario                        |
-| POST   | `/classes`                      | ✅   | Registrar clase                           |
-| GET    | `/classes/mine`                 | ✅   | Historial de clases del usuario autenticado |
-| DELETE | `/classes/:id`                  | ✅   | Borrar clase                              |
+| Method | Endpoint                      | Auth | Description                              |
+| ------ | ----------------------------- | ---- | ---------------------------------------- |
+| POST   | `/auth/login`                 | ❌   | Login                                    |
+| POST   | `/users`                      | ❌   | Register user (starts inactive)          |
+| PATCH  | `/users/me/password`          | ✅   | Change password (deactivates account)    |
+| PATCH  | `/users/me/payment`           | ✅   | Update payment date and classes paid     |
+| GET    | `/users/me/classes-taken`     | ✅   | Classes taken since payment date         |
+| GET    | `/users/me/classes-remaining` | ✅   | Classes remaining                        |
+| GET    | `/users/me/days-remaining`    | ✅   | Days until next payment                  |
+| GET    | `/users/me/profile`           | ✅   | User profile                             |
+| POST   | `/classes`                    | ✅   | Register a class                         |
+| GET    | `/classes/mine`               | ✅   | Class history for the authenticated user |
+| DELETE | `/classes/:id`                | ✅   | Delete a class                           |
 
 ---
 
-## Comandos útiles
+## Useful Commands
 
-### Docker (flujo recomendado)
+### Docker (recommended flow)
 
 ```bash
-docker-compose up -d --build       # Levantar todo
-docker-compose down                # Apagar
-docker-compose logs -f backend     # Ver logs del backend
-docker-compose logs -f db          # Ver logs de la BD
+docker-compose up -d --build       # Start everything
+docker-compose down                # Stop
+docker-compose logs -f backend     # View backend logs
+docker-compose logs -f db          # View DB logs
 ```
 
-### Backend (desarrollo local sin Docker)
+### Backend (local development without Docker)
 
 ```bash
 cd backend
 npm install
-npm run dev                        # Hot reload con ts-node-dev
+npm run dev                        # Hot reload with ts-node-dev
 ```
 
-> Requiere `DB_HOST=localhost` en el `.env`.
+> Requires `DB_HOST=localhost` in `.env`.
 
-### Frontend (desarrollo local)
+### Frontend (local development)
 
 ```bash
 cd frontend
@@ -117,22 +117,24 @@ npm run build
 npx http-server dist -p 8080 --cors
 ```
 
-### Base de datos
+### Database
 
 ```bash
-# Conectarse al postgres del contenedor
+# Connect to the postgres container
 docker exec -it dance_db psql -U dance_user -d dance_registration
 
-# Activar usuario manualmente (pendiente por refactorizar)
+# Activate a user manually (intentional — see ADR-002)
 docker exec -it dance_db psql -U dance_user -d dance_registration -c \
   "UPDATE users SET is_active = true WHERE name = 'username';"
 ```
 
 ---
 
-## Variables de entorno
+## Environment Variables
 
-El proyecto usa un único `.env` en la raíz:
+The project uses a single `.env` at the root:
+
+```env
 DB_HOST=db
 DB_PORT=5432
 DB_NAME=dance_registration
@@ -143,79 +145,80 @@ CORS_ORIGIN=http://localhost:8080
 JWT_SECRET=...
 JWT_EXPIRES_IN=8h
 FRONTEND_PORT=8080
+```
 
 ---
 
-## Convenciones de código
+## Code Conventions
 
-- **TypeScript estricto** en backend y frontend.
-- **Organización por features, no por capas.** Cada feature tiene su router, controller, service y model en la misma carpeta.
-- **Sequelize** para ORM — evitar queries SQL raw salvo casos muy justificados.
-- **JWT** en header `Authorization: Bearer <token>`.
-- **Endpoints RESTful** con patrón `/recurso/:id/subrecurso`.
-- **Commits en inglés**, mensajes cortos y descriptivos.
-
----
-
-## Flujo de trabajo con Claude
-
-- **Siempre muéstrame un plan antes de hacer cambios.** No apliques ediciones sin que haya aprobado el plan primero, incluso si parecen cambios pequeños.
-- Usa modo Plan por defecto.
-- Al terminar una tarea, dime qué archivos tocaste y por qué.
-- Si detectas algo que no te pedí pero está mal (bug, smell, inconsistencia), menciónalo al final pero no lo arregles sin preguntar.
-- Antes de instalar dependencias nuevas, justifica por qué y espera aprobación.
-- Para cambios que toquen múltiples archivos, desglosa el plan archivo por archivo.
+- **Strict TypeScript** in both backend and frontend.
+- **Feature-first organization, not layer-first.** Each feature has its router, controller, service, and model in the same folder.
+- **Sequelize** for ORM — avoid raw SQL queries unless strongly justified.
+- **JWT** in `Authorization: Bearer <token>` header.
+- **RESTful endpoints** following `/resource/:id/subresource` pattern.
+- **Commits in English**, short and descriptive.
 
 ---
 
-## Pendientes conocidos (backlog de mejoras)
+## Workflow with Claude
 
-Priorizados de mayor a menor urgencia. Puedes atacarlos conforme vayan surgiendo en la conversación:
+- **Always show me a plan before making changes.** Do not apply edits without my approval first, even for small changes.
+- Use Plan mode by default.
+- When finishing a task, tell me which files you touched and why.
+- If you spot something I didn't ask about but that looks wrong (bug, smell, inconsistency), mention it at the end but don't fix it without asking.
+- Before installing new dependencies, justify why and wait for approval.
+- For changes touching multiple files, break down the plan file by file.
 
-### Seguridad
+---
 
-1. ~~**Fix IDOR**~~: resuelto — rutas `/users/:id/*` reemplazadas por `/users/me/*` y `user_id` tomado del JWT. Ver ADR-001 en `docs/decisions.md`.
-2. **Endpoint admin** para activar cuentas (`PATCH /users/:id/activate`) que reemplace el `UPDATE` manual en SQL. Requiere agregar `role` a `users` y middleware `requireAdmin`.
-3. **Cambio de contraseña sin desactivar cuenta**: pedir contraseña actual en lugar de desactivar.
-4. **Rate limiting** con `express-rate-limit`, especialmente en `/auth/login`.
-5. **`helmet()`** en el backend.
-6. **Validación de bodies** con `zod` (o `joi`) en todos los endpoints.
-7. **Revisar almacenamiento del JWT** en el frontend (si está en `localStorage`, considerar `httpOnly` cookie).
+## Known Backlog (improvement items)
+
+Prioritized from highest to lowest urgency. Address them as they come up in conversation:
+
+### Security
+
+1. ~~**Fix IDOR**~~: resolved — `/users/:id/*` routes replaced by `/users/me/*` and `user_id` taken from JWT. See ADR-001 in `docs/decisions.md`.
+2. ~~**Admin endpoint to activate accounts**~~: intentional business decision — manual SQL activation is kept. See ADR-002 in `docs/decisions.md`.
+3. ~~**Password change without deactivating account**~~: intentional business decision — deactivation on password change is kept. See ADR-003 in `docs/decisions.md`.
+4. **Rate limiting** with `express-rate-limit`, especially on `/auth/login`.
+5. **`helmet()`** in the backend.
+6. **Body validation** with `zod` (or `joi`) on all endpoints.
+7. **Review JWT storage** in the frontend (if in `localStorage`, consider `httpOnly` cookie).
 
 ### API
 
-8. **Consolidar endpoints del dashboard**: `/users/:id/dashboard` que devuelva `classesTaken`, `classesRemaining`, `daysRemaining` en una sola llamada.
-9. **Versionado**: prefijo `/api/v1/` en todas las rutas.
-10. **Endpoint `/health`** para healthcheck del backend.
+8. **Consolidate dashboard endpoints**: `/users/me/dashboard` returning `classesTaken`, `classesRemaining`, `daysRemaining` in a single call.
+9. **Versioning**: `/api/v1/` prefix on all routes.
+10. **`/health` endpoint** for backend healthcheck.
 
-### Base de datos
+### Database
 
-11. **Soft deletes** en `classes` (columna `deleted_at`).
-12. **Índice** en `classes(user_id, date)` si no existe.
-13. **Tabla `plans`** si se quiere flexibilidad más allá de 12/15 clases.
+11. **Soft deletes** on `classes` (`deleted_at` column).
+12. **Index** on `classes(user_id, date)` if missing.
+13. **`plans` table** if flexibility beyond 12/15 classes is needed.
 
 ### Testing / DX
 
-14. **Tests unitarios** de la lógica de fechas (clases tomadas, restantes, días).
-15. **Tests de integración** con supertest.
-16. **GitHub Actions** con `npm test` y `npm run build`.
-17. **OpenAPI/Swagger** generado desde el código.
+14. **Unit tests** for date logic (classes taken, remaining, days).
+15. **Integration tests** with supertest.
+16. **GitHub Actions** with `npm test` and `npm run build`.
+17. **OpenAPI/Swagger** generated from code.
 
-### Producto
+### Product
 
-18. Vista de admin (listar alumnos, pagos vencidos, etc.).
-19. Exportar historial a CSV/PDF.
-20. Notificaciones cuando falten N días para el pago.
+18. Admin view (list students, overdue payments, etc.).
+19. Export history to CSV/PDF.
+20. Notifications when N days remain until payment.
 
-### Infra
+### Infrastructure
 
-21. Multi-stage build en los Dockerfiles.
-22. Quitar `version: "3.9"` del `docker-compose.yml` (deprecado).
-23. Headers de seguridad en la config de nginx (CSP, X-Frame-Options).
-24. No exponer el puerto 3000 del backend en producción.
+21. Multi-stage builds in Dockerfiles.
+22. Remove `version: "3.9"` from `docker-compose.yml` (deprecated).
+23. Security headers in nginx config (CSP, X-Frame-Options).
+24. Don't expose backend port 3000 in production.
 
 ### Repo
 
-25. Agregar `LICENSE`.
-26. Screenshots en el README.
-27. Tags y CHANGELOG.
+25. Add `LICENSE`.
+26. Screenshots in README.
+27. Tags and CHANGELOG.

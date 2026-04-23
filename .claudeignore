@@ -1,20 +1,20 @@
-# Dependencias
+# Dependencies
 node_modules/
 **/node_modules/
 
-# Builds y artefactos
+# Build artifacts
 dist/
 build/
 **/dist/
 **/build/
 *.tsbuildinfo
 
-# Variables de entorno (contienen secretos)
+# Environment variables (contain secrets)
 .env
 .env.*
 !.env.example
 
-# Datos de Postgres (volumen de Docker)
+# Postgres data (Docker volume)
 db_data/
 **/db_data/
 
@@ -25,7 +25,7 @@ yarn-debug.log*
 yarn-error.log*
 logs/
 
-# Sistema operativo
+# Operating system
 .DS_Store
 Thumbs.db
 
@@ -36,21 +36,21 @@ Thumbs.db
 !.vscode/launch.json
 .idea/
 
-# Caché
+# Cache
 .cache/
 .npm/
 .eslintcache
 
-# Archivos temporales
+# Temporary files
 *.tmp
 *.swp
 *~
 
-# Lock files (opcional — si quieres que Claude los lea, quita estas líneas)
+# Lock files (optional — remove these lines if you want Claude to read them)
 package-lock.json
 yarn.lock
 
-# Coverage de tests
+# Test coverage
 coverage/
 .nyc_output/
 

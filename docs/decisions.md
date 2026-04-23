@@ -129,3 +129,83 @@ instead of from the verified JWT.
      Any `user_id` field in the body is silently ignored.
    - `DELETE /classes/:id` with one of `bob`'s class ids returns 404 — the
      response is indistinguishable from a non-existent id, by design.
+
+---
+
+## ADR-002 — Manual user activation via SQL (no admin endpoint)
+
+- **Date:** 2026-04-22
+- **Status:** Accepted
+
+### Context
+
+An admin endpoint (`PATCH /users/:id/activate`) was considered as a replacement
+for the manual `UPDATE users SET is_active = true WHERE name = '...'` SQL command
+currently used to activate new accounts. This would have required adding a `role`
+column to `users` and a `requireAdmin` middleware.
+
+### Decision
+
+Keep manual SQL activation. No admin endpoint will be implemented.
+
+### Reasons
+
+- The app serves at most 10–20 users. The frequency of new account activations
+  is very low.
+- An admin endpoint would introduce a privileged credential (admin username +
+  password) that could be stolen. The current approach requires direct server
+  access, which is a stronger security boundary.
+- The added complexity (role column, middleware, new endpoint) is not justified
+  at this scale.
+
+### Consequences
+
+**Accepted:**
+
+- New users must be activated with a direct SQL command (see CLAUDE.md and README
+  for the exact command).
+- This is intentional and should not be treated as a bug or a pending refactor.
+
+**Not yet addressed:**
+
+- If the app ever scales to dozens of users or multiple admins, this decision
+  should be revisited.
+
+---
+
+## ADR-003 — Password change deactivates account (intentional behavior)
+
+- **Date:** 2026-04-22
+- **Status:** Accepted
+
+### Context
+
+The current behavior on `PATCH /users/me/password` sets `is_active = false` after
+updating the password. This was flagged as an anti-pattern: ideally, a password
+change should verify the current password and not disrupt account access.
+
+### Decision
+
+Keep the current behavior. Password change continues to deactivate the account.
+
+### Reasons
+
+- With fewer than 20 users, manual reactivation via SQL is not a real operational
+  cost.
+- The deactivation acts as an implicit confirmation step: the studio owner reviews
+  and reactivates, ensuring no unauthorized password changes go unnoticed.
+- Implementing "verify current password before changing" adds complexity without
+  meaningful benefit at this scale.
+
+### Consequences
+
+**Accepted:**
+
+- After a password change, the user must contact the studio owner to be reactivated.
+- This is intentional and should not be treated as a bug or a pending refactor.
+
+**Not yet addressed:**
+
+- If self-service password recovery becomes necessary in the future, this decision
+  should be revisited with a proper flow (e.g. email verification, current-password
+  confirmation).

@@ -4,12 +4,12 @@ A class registration system for dance studios. Students can register, log their 
 
 ## Features
 
-- **Authentication** — JWT-based login. Accounts are activated manually by the admin directly in the database, preventing unauthorized access.
+- **Authentication** — JWT-based login. Accounts are activated manually by the studio owner directly in the database. This is an intentional design decision for a small, closed user base — see ADR-002 in `docs/decisions.md`.
 - **Class registration** — Quick-register buttons for Bachata, Salsa and Cumbia log a class instantly with today's date. A manual form allows registering classes on past dates.
 - **Dashboard stats** — Cards showing classes taken since last payment, classes remaining, and days until next payment. Cards turn yellow or red when values are low.
 - **Monthly calendar** — Visual calendar showing registered classes as colored dots per dance type.
 - **Class history** — Full table of registered classes with delete functionality and confirmation modal.
-- **Profile** — Update payment date, classes paid (12 or 15), and password. Changing the password deactivates the account until the admin reactivates it.
+- **Profile** — Update payment date, classes paid (12 or 15), and password. Changing the password deactivates the account until the studio owner reactivates it. This is an intentional design decision — see ADR-003 in `docs/decisions.md`.
 - **Dark mode** — Follows system preference on first load, togglable from the header.
 - **Bilingual** — Spanish and English support with automatic browser language detection, togglable from the header.
 - **Responsive** — Optimized for mobile, tablet, and laptop.
@@ -162,7 +162,7 @@ The app will be available at `http://localhost:8080`.
 
 ## Activating a User Account
 
-After a user registers, an admin must activate the account directly in the database:
+After a user registers, the studio owner activates the account directly in the database. This is an intentional design decision for a small, closed user base — no admin endpoint exists by design (see ADR-002 in `docs/decisions.md`).
 
 ```bash
 docker exec -it dance_db psql -U dance_user -d dance_registration -c \
