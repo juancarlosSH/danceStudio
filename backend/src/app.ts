@@ -5,8 +5,11 @@ import sequelize from './config/database';
 import authRoutes from './features/auth/authRoutes';
 import usersRoutes from './features/users/usersRoutes';
 import classesRoutes from './features/classes/classesRoutes';
+import { globalLimiter } from './middlewares/rateLimitMiddleware';
 
 const app = express();
+
+app.set('trust proxy', 1);
 
 app.use(cors({
   origin: process.env.CORS_ORIGIN ?? '*',
@@ -15,6 +18,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(globalLimiter);
 
 app.use('/auth',    authRoutes);
 app.use('/users',   usersRoutes);
