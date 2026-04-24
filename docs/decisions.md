@@ -209,3 +209,68 @@ Keep the current behavior. Password change continues to deactivate the account.
 - If self-service password recovery becomes necessary in the future, this decision
   should be revisited with a proper flow (e.g. email verification, current-password
   confirmation).
+
+---
+
+## ADR-004 — Rate limiting on login and all API routes
+
+- **Date:** 2026-04-23
+- **Status:** Accepted
+
+### Context
+
+`POST /auth/login` had no request throttling. A single attacker could perform
+unlimited login attempts from one IP, making brute-force attacks against user
+passwords trivially cheap. bcrypt's cost factor provides some natural slowdown,
+but is not sufficient on its own.
+
+### Decision
+
+Add `express-rate-limit` with two independent limiters:
+
+| Limiter | Scope | Window | Max requests |
+|---|---|---|---|
+| `loginLimiter` | `POST /auth/login` | 15 min | 10 |
+| `globalLimiter` | All routes | 1 min | 100 |
+
+Both limiters expose standard `RateLimit-*` headers (`standardHeaders: true`)
+and suppress the deprecated `X-RateLimit-*` headers (`legacyHeaders: false`).
+
+`app.set('trust proxy', 1)` is set so that Express reads the real client IP
+from the `X-Forwarded-For` header forwarded by nginx, instead of always seeing
+the nginx container IP.
+
+### Alternatives considered
+
+- **Per-username lockout (in addition to per-IP).** Would protect against
+  distributed attacks where a single target account is hit from many IPs.
+  Rejected at this stage: requires storing failed-attempt counters in the DB
+  or a Redis cache, which is significant complexity for a ≤20-user studio.
+  Can be revisited if the threat model changes.
+
+- **Exponential backoff / progressive delay.** More user-friendly than a hard
+  block, but harder to implement correctly with a stateless in-memory store.
+  Not justified at this scale.
+
+- **Block at nginx level.** Possible, but would require nginx config changes
+  and moves the concern out of the application layer where it is easier to
+  reason about and test.
+
+### Consequences
+
+**Accepted:**
+
+- Brute-force from a single IP is limited to 10 attempts per 15-minute window
+  on the login endpoint.
+- Distributed brute-force (different IPs, same account) is **not** mitigated.
+  For a ≤20-user studio this is an accepted residual risk.
+- The in-memory rate-limit store resets on backend restart. This is acceptable:
+  the studio runs as a single container, restarts are infrequent, and a
+  persistent store (Redis) would be over-engineered here.
+- All legitimate users share the global 100 req/min cap, which is well above
+  normal usage patterns for this app.
+
+**Not yet addressed:**
+
+- `helmet()` (backlog item 5) and body validation with Zod (backlog item 6)
+  are separate work items.

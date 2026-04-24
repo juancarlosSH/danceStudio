@@ -180,7 +180,7 @@ Prioritized from highest to lowest urgency. Address them as they come up in conv
 1. ~~**Fix IDOR**~~: resolved — `/users/:id/*` routes replaced by `/users/me/*` and `user_id` taken from JWT. See ADR-001 in `docs/decisions.md`.
 2. ~~**Admin endpoint to activate accounts**~~: intentional business decision — manual SQL activation is kept. See ADR-002 in `docs/decisions.md`.
 3. ~~**Password change without deactivating account**~~: intentional business decision — deactivation on password change is kept. See ADR-003 in `docs/decisions.md`.
-4. **Rate limiting** with `express-rate-limit`, especially on `/auth/login`.
+4. ~~**Rate limiting**~~: resolved — `loginLimiter` (10 req / 15 min) on `/auth/login` and `globalLimiter` (100 req / 1 min) on all routes. `trust proxy` enabled for nginx. See ADR-004 in `docs/decisions.md`.
 5. **`helmet()`** in the backend.
 6. **Body validation** with `zod` (or `joi`) on all endpoints.
 7. **Review JWT storage** in the frontend (if in `localStorage`, consider `httpOnly` cookie).
