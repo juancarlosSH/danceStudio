@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import sequelize from './config/database';
 import authRoutes from './features/auth/authRoutes';
 import usersRoutes from './features/users/usersRoutes';
@@ -10,6 +11,8 @@ import { globalLimiter } from './middlewares/rateLimitMiddleware';
 const app = express();
 
 app.set('trust proxy', 1);
+
+app.use(helmet({ contentSecurityPolicy: false }));
 
 app.use(cors({
   origin: process.env.CORS_ORIGIN ?? '*',
