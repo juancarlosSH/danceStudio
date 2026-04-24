@@ -272,5 +272,61 @@ the nginx container IP.
 
 **Not yet addressed:**
 
-- `helmet()` (backlog item 5) and body validation with Zod (backlog item 6)
-  are separate work items.
+- Body validation with Zod (backlog item 6) is a separate work item.
+
+---
+
+## ADR-005 — HTTP security headers via helmet
+
+- **Date:** 2026-04-23
+- **Status:** Accepted
+
+### Context
+
+The Express backend returned no HTTP security headers beyond the ones added by
+Express itself. This left the API exposed to a range of well-known header-based
+attacks: MIME-type sniffing, clickjacking, unintended cross-origin resource
+sharing, and missing transport security enforcement.
+
+### Decision
+
+Add `helmet` as the first middleware in `app.ts`. `contentSecurityPolicy` is
+disabled because the backend is a pure JSON API — it serves no HTML and has no
+inline scripts or styles. CSP is the responsibility of the nginx frontend.
+
+Headers applied by default in this configuration:
+
+| Header | Value | Purpose |
+|---|---|---|
+| `X-Content-Type-Options` | `nosniff` | Prevents MIME-type sniffing |
+| `X-Frame-Options` | `SAMEORIGIN` | Blocks clickjacking |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Enforces HTTPS |
+| `Referrer-Policy` | `no-referrer` | Suppresses Referer header leakage |
+| `X-DNS-Prefetch-Control` | `off` | Prevents DNS prefetch information leakage |
+| `Cross-Origin-Opener-Policy` | `same-origin` | Isolates browsing context |
+| `Cross-Origin-Resource-Policy` | `same-origin` | Restricts cross-origin resource reads |
+| `Origin-Agent-Cluster` | `?1` | Enables origin-keyed agent clustering |
+| `X-XSS-Protection` | `0` | Disabled — modern browsers ignore it and it can introduce vulnerabilities |
+
+### Alternatives considered
+
+- **Set headers manually.** More control but error-prone and hard to maintain.
+  helmet is the maintained standard for Express.
+- **Enable CSP on the backend.** Unnecessary for a JSON API and would likely
+  break legitimate browser behavior. Deferred to nginx for the frontend.
+
+### Consequences
+
+**Accepted:**
+
+- `contentSecurityPolicy` is disabled on the backend. The frontend nginx config
+  should set its own CSP (tracked in backlog item 23).
+- `Strict-Transport-Security` is sent even in local HTTP development. This has
+  no practical effect locally but would enforce HTTPS once the app is deployed
+  behind TLS.
+
+**Not yet addressed:**
+
+- CSP, `X-Frame-Options`, and other security headers for the nginx frontend
+  (backlog item 23).
+- Body validation with Zod (backlog item 6).
