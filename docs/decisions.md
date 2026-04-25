@@ -419,3 +419,86 @@ the field is omitted.
   errors (backlog item 7 area).
 - CSP, `X-Frame-Options`, and other security headers for the nginx frontend
   (backlog item 23).
+
+---
+
+## ADR-007 — JWT storage migrated from localStorage to httpOnly cookie
+
+- **Date:** 2026-04-25
+- **Status:** Accepted
+- **Related points:** Backlog item 7 (Security).
+
+### Context
+
+The JWT returned by `POST /auth/login` was stored in `localStorage` and sent
+manually in an `Authorization: Bearer` header on every request. `localStorage`
+is accessible to any JavaScript running on the page. Although `helmet` and a
+future CSP reduce the XSS attack surface, storing auth tokens in `localStorage`
+remains a well-known anti-pattern: a single XSS vulnerability would expose the
+token to an attacker, who could then impersonate the user for the full token
+lifetime (8 hours).
+
+### Decision
+
+Move the JWT out of `localStorage` entirely and into an `httpOnly` cookie set
+by the server at login.
+
+Concrete changes:
+
+| Layer | Change |
+|---|---|
+| **Backend — `POST /auth/login`** | Sets a `token` cookie (`httpOnly`, `sameSite: strict`, `secure` in production). Returns `{ user, expiresAt }` in the body; no longer exposes the raw token. |
+| **Backend — `POST /auth/logout`** (new) | Clears the `token` cookie via `res.clearCookie`. |
+| **Backend — `authMiddleware`** | Reads the token from `req.cookies.token` instead of the `Authorization` header. |
+| **Backend — CORS** | `credentials: true` added; `Authorization` removed from `allowedHeaders`; `origin` now requires an explicit value (no `*` fallback). |
+| **Backend — `app.ts`** | `cookie-parser` mounted before the rate limiter. |
+| **Backend — `authService`** | Returns `{ token, user, expiresAt }`. `expiresAt` is extracted from the signed token's `exp` claim via `jwt.decode`. |
+| **Backend — `authController`** | `COOKIE_MAX_AGE` is derived at startup from `JWT_EXPIRES_IN` via `parseExpiryMs`, keeping cookie lifetime and token lifetime in sync. |
+| **Frontend — `api.ts`** | `credentials: 'include'` on every `fetch`; `Authorization` header and `getToken()` removed; `apiLogout()` added. |
+| **Frontend — `store.ts`** | `saveSession(user, expiresAt)` stores only `user` and the expiry timestamp in `localStorage`; no token is ever written to client storage. `restoreSession()` checks the timestamp without decoding the JWT. |
+| **Frontend — `app.ts`** | `handleLogin` reads `{ user, expiresAt }` from the API response directly. `handleLogout` calls `apiLogout()` before clearing local state. |
+
+### Alternatives considered
+
+- **Keep `localStorage`, add strict CSP.** A Content Security Policy would
+  reduce XSS risk but does not eliminate it. If any script injection succeeds,
+  the token is still readable. `httpOnly` cookies are immune to JavaScript
+  access by design, making this a structural rather than a mitigative fix.
+  Rejected.
+
+- **`sessionStorage` instead of `localStorage`.** Scoped to the browser tab,
+  so the token does not survive a full close. Marginally better but still
+  JavaScript-readable. The core XSS vulnerability remains. Rejected.
+
+- **Refresh token rotation.** Would allow short-lived access tokens and
+  revocable sessions. Out of scope at this scale. Can be revisited if the
+  threat model requires it.
+
+### Consequences
+
+**Accepted:**
+
+- The `Authorization: Bearer` header is no longer used. Any external client
+  (e.g. curl, Postman) must send the `token` cookie instead.
+- The frontend can no longer inspect the JWT payload client-side. The expiry
+  is communicated explicitly in the login response (`expiresAt` in ms) and
+  stored as a plain timestamp in `localStorage` for session-restore checks.
+  This is a UX hint only — actual authentication is enforced by the server.
+- `SameSite: strict` means the cookie is not sent on cross-site navigations
+  (e.g. following a link from an external site). Users arriving via an external
+  link will see the login screen even if their session is still valid and must
+  log in once. Acceptable for a studio-internal app with no external referrers.
+- `secure` is `false` in development (HTTP). In production the app must be
+  served over HTTPS for the flag to activate; without it the cookie would be
+  sent in plain text, negating the security benefit.
+- `CORS_ORIGIN` must be set explicitly in `.env`. The previous `?? '*'`
+  fallback is removed because `credentials: true` and `origin: '*'` are
+  mutually exclusive in the Fetch spec — browsers reject the combination.
+- `cookie-parser` is added as a production dependency.
+
+**Not yet addressed:**
+
+- JWT revocation / token denylist: a stolen cookie cannot be invalidated before
+  its expiry. Mitigation: 8h TTL and the "password change deactivates account"
+  rule (ADR-003). A proper denylist (jti + Redis) is out of scope here.
+- CSP and other security headers for the nginx frontend (backlog item 23).

@@ -183,7 +183,7 @@ Prioritized from highest to lowest urgency. Address them as they come up in conv
 4. ~~**Rate limiting**~~: resolved — `loginLimiter` (10 req / 15 min) on `/auth/login` and `globalLimiter` (100 req / 1 min) on all routes. `trust proxy` enabled for nginx. See ADR-004 in `docs/decisions.md`.
 5. ~~**`helmet()`**~~: resolved — mounted as first middleware with `contentSecurityPolicy` disabled (pure JSON API). See ADR-005 in `docs/decisions.md`.
 6. ~~**Body validation** with `zod` on all endpoints~~: resolved — generic `validate(schema, target)` factory with per-feature Zod schemas. `classes_paid` normalized to `12 | 15` only, default `12` on registration. See ADR-006 in `docs/decisions.md`.
-7. **Review JWT storage** in the frontend (if in `localStorage`, consider `httpOnly` cookie).
+7. ~~**Review JWT storage** in the frontend~~: resolved — JWT moved to an `httpOnly`, `SameSite=strict` cookie set by the server. `localStorage` no longer holds the token. `POST /auth/logout` clears the cookie. Cookie lifetime is derived from `JWT_EXPIRES_IN`. See ADR-007 in `docs/decisions.md`.
 
 ### API
 
