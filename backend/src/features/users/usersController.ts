@@ -34,7 +34,6 @@ export const updatePasswordHandler = async (req: Request, res: Response): Promis
   try {
     const id = (req as AuthRequest).user.id;
     const { password } = req.body;
-    if (!password) { res.status(400).json({ message: 'password is required' }); return; }
     const result = await updatePassword(id, password);
     res.status(200).json(result);
   } catch (error: any) {

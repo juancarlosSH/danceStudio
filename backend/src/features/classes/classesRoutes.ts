@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { registerClassHandler, deleteClassHandler, getMyClassesHandler } from './classesController';
 import { authMiddleware } from '../../middlewares/authMiddleware';
-import { validateRegisterClass, validateId } from '../../middlewares/validateMiddleware';
+import { validate } from '../../middlewares/validateMiddleware';
+import { registerClassSchema, classIdParamSchema } from './classesSchemas';
 
 /**
  * Classes are always scoped to the authenticated user:
@@ -20,8 +21,8 @@ import { validateRegisterClass, validateId } from '../../middlewares/validateMid
  */
 const router = Router();
 
-router.post('/',       authMiddleware, validateRegisterClass, registerClassHandler);
-router.get('/mine',    authMiddleware,                        getMyClassesHandler);
-router.delete('/:id',  authMiddleware, validateId,            deleteClassHandler);
+router.post('/',      authMiddleware, validate(registerClassSchema),          registerClassHandler);
+router.get('/mine',   authMiddleware,                                          getMyClassesHandler);
+router.delete('/:id', authMiddleware, validate(classIdParamSchema, 'params'), deleteClassHandler);
 
 export default router;

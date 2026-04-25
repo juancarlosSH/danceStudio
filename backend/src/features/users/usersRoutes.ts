@@ -9,7 +9,8 @@ import {
   getProfileHandler,
 } from './usersController';
 import { authMiddleware } from '../../middlewares/authMiddleware';
-import { validateRegisterUser, validateUpdatePayment } from '../../middlewares/validateMiddleware';
+import { validate } from '../../middlewares/validateMiddleware';
+import { registerUserSchema, updatePasswordSchema, updatePaymentSchema } from './usersSchemas';
 
 /**
  * Routes for the authenticated user operate on /me/*, not /:id/*.
@@ -28,14 +29,14 @@ import { validateRegisterUser, validateUpdatePayment } from '../../middlewares/v
 const router = Router();
 
 // Public: create an account.
-router.post('/', validateRegisterUser, registerUserHandler);
+router.post('/', validate(registerUserSchema), registerUserHandler);
 
 // Authenticated: operate on "me".
-router.patch('/me/password',         authMiddleware,                        updatePasswordHandler);
-router.patch('/me/payment',          authMiddleware, validateUpdatePayment, updatePaymentHandler);
-router.get('/me/classes-taken',      authMiddleware,                        getClassesTakenHandler);
-router.get('/me/classes-remaining',  authMiddleware,                        getRemainingClassesHandler);
-router.get('/me/days-remaining',     authMiddleware,                        getRemainingDaysHandler);
-router.get('/me/profile',            authMiddleware,                        getProfileHandler);
+router.patch('/me/password',        authMiddleware, validate(updatePasswordSchema), updatePasswordHandler);
+router.patch('/me/payment',         authMiddleware, validate(updatePaymentSchema),  updatePaymentHandler);
+router.get('/me/classes-taken',     authMiddleware,                                 getClassesTakenHandler);
+router.get('/me/classes-remaining', authMiddleware,                                 getRemainingClassesHandler);
+router.get('/me/days-remaining',    authMiddleware,                                 getRemainingDaysHandler);
+router.get('/me/profile',           authMiddleware,                                 getProfileHandler);
 
 export default router;
