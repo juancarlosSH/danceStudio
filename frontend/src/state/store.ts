@@ -1,9 +1,8 @@
 import { DanceClass, Lang, StatsData, Theme, User, ViewName } from '../types';
-import { TRANSLATIONS, Translations, detectLang } from '../i18n/translations';
+import { TRANSLATIONS, Translations } from '../i18n/translations';
 
 // ── State ─────────────────────────────────────────────────────
 interface AppState {
-  token:           string | null;
   user:            User | null;
   classes:         DanceClass[];
   stats:           StatsData | null;
@@ -15,7 +14,6 @@ interface AppState {
 }
 
 const state: AppState = {
-  token:           null,
   user:            null,
   classes:         [],
   stats:           null,
@@ -27,19 +25,17 @@ const state: AppState = {
 };
 
 // ── Getters ───────────────────────────────────────────────────
-export const getToken          = (): string | null  => state.token;
-export const getUser           = (): User | null     => state.user;
-export const getClasses        = (): DanceClass[]    => state.classes;
-export const getStats          = (): StatsData | null => state.stats;
-export const getPendingDeleteId = (): number | null  => state.pendingDeleteId;
-export const getCalYear        = (): number          => state.calYear;
-export const getCalMonth       = (): number          => state.calMonth;
-export const getLang           = (): Lang            => state.lang;
-export const getTheme          = (): Theme           => state.theme;
+export const getUser            = (): User | null      => state.user;
+export const getClasses         = (): DanceClass[]     => state.classes;
+export const getStats           = (): StatsData | null => state.stats;
+export const getPendingDeleteId = (): number | null    => state.pendingDeleteId;
+export const getCalYear         = (): number           => state.calYear;
+export const getCalMonth        = (): number           => state.calMonth;
+export const getLang            = (): Lang             => state.lang;
+export const getTheme           = (): Theme            => state.theme;
 
 // ── Setters ───────────────────────────────────────────────────
-export const setToken  = (token: string | null): void  => { state.token = token; };
-export const setUser   = (user: User | null): void     => { state.user = user; };
+export const setUser   = (user: User | null): void      => { state.user = user; };
 export const setClasses = (classes: DanceClass[]): void => { state.classes = classes; };
 export const setStats  = (stats: StatsData | null): void => { state.stats = stats; };
 export const setPendingDeleteId = (id: number | null): void => { state.pendingDeleteId = id; };
@@ -47,33 +43,28 @@ export const setCalYear  = (y: number): void => { state.calYear = y; };
 export const setCalMonth = (m: number): void => { state.calMonth = m; };
 
 // ── Session ───────────────────────────────────────────────────
-export function saveSession(token: string, user: User): void {
-  state.token = token;
-  state.user  = user;
-  localStorage.setItem('token', token);
+export function saveSession(user: User, expiresAt: number): void {
+  state.user = user;
   localStorage.setItem('user', JSON.stringify(user));
+  localStorage.setItem('session_expires_at', String(expiresAt));
 }
 
 export function clearSession(): void {
-  state.token   = null;
   state.user    = null;
   state.classes = [];
   state.stats   = null;
-  localStorage.removeItem('token');
   localStorage.removeItem('user');
+  localStorage.removeItem('session_expires_at');
 }
 
-export function restoreSession(): { token: string; user: User } | null {
-  const savedToken = localStorage.getItem('token');
-  const savedUser  = localStorage.getItem('user');
-  if (!savedToken || !savedUser) return null;
+export function restoreSession(): { user: User } | null {
+  const savedUser      = localStorage.getItem('user');
+  const expiresAt      = Number(localStorage.getItem('session_expires_at'));
+  if (!savedUser || !expiresAt || expiresAt < Date.now()) return null;
   try {
-    const payload = JSON.parse(atob(savedToken.split('.')[1]));
-    if (payload.exp * 1000 < Date.now()) return null;
     const user = JSON.parse(savedUser) as User;
-    state.token = savedToken;
-    state.user  = user;
-    return { token: savedToken, user };
+    state.user = user;
+    return { user };
   } catch {
     return null;
   }

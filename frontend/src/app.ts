@@ -3,7 +3,7 @@ import { detectTheme, applyTheme, toggleTheme, applyLang, toggleLang, showView,
          getUser, t } from './state/store';
 import { detectLang } from './i18n/translations';
 import {
-  apiLogin, apiRegisterUser, apiLoadStats,
+  apiLogin, apiLogout, apiRegisterUser, apiLoadStats,
   apiGetMyClasses, apiRegisterClass, apiDeleteClass,
   apiGetProfile, apiUpdatePayment, apiUpdatePassword,
   todayString,
@@ -80,17 +80,16 @@ async function refreshDashboard(): Promise<void> {
 
 // ── Auth handlers ─────────────────────────────────────────────
 async function handleLogin(name: string, password: string): Promise<void> {
-  const { token } = await apiLogin(name, password);
-  const payload   = JSON.parse(atob(token.split('.')[1]));
-  const user      = { id: payload.id, name: payload.name };
-  saveSession(token, user);
+  const { user, expiresAt } = await apiLogin(name, password);
+  saveSession(user, expiresAt);
   document.getElementById('dash-username')!.textContent    = user.name;
   document.getElementById('profile-username')!.textContent = user.name;
   showView('dashboard');
   await loadDashboard();
 }
 
-function handleLogout(): void {
+async function handleLogout(): Promise<void> {
+  await apiLogout();
   clearSession();
   showView('login');
   (document.getElementById('login-name')     as HTMLInputElement).value = '';

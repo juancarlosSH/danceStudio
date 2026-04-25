@@ -9,7 +9,10 @@ dotenv.config();
 
 const INVALID = { status: 401, message: 'Invalid credentials' };
 
-export const login = async (name: string, password: string): Promise<{ token: string }> => {
+export const login = async (
+  name: string,
+  password: string,
+): Promise<{ token: string; user: { id: number; name: string }; expiresAt: number }> => {
   const [user] = await sequelize.query<User>(
     'SELECT * FROM users WHERE name = :name LIMIT 1',
     { replacements: { name }, type: QueryTypes.SELECT }
@@ -23,6 +26,7 @@ export const login = async (name: string, password: string): Promise<{ token: st
   const secret  = process.env.JWT_SECRET as string;
   const options: SignOptions = { expiresIn: (process.env.JWT_EXPIRES_IN ?? '8h') as SignOptions['expiresIn'] };
   const token   = jwt.sign({ id: user.id, name: user.name }, secret, options);
+  const { exp } = jwt.decode(token) as { exp: number };
 
-  return { token };
+  return { token, user: { id: user.id, name: user.name }, expiresAt: exp * 1000 };
 };

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import sequelize from './config/database';
 import authRoutes from './features/auth/authRoutes';
 import usersRoutes from './features/users/usersRoutes';
@@ -15,12 +16,14 @@ app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN ?? '*',
+  origin: process.env.CORS_ORIGIN,
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type'],
+  credentials: true,
 }));
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(globalLimiter);
 
 app.use('/auth',    authRoutes);

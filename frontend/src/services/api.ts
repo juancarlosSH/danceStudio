@@ -1,17 +1,13 @@
-import { DanceClass, DanceType, ProfileData, StatsData } from '../types';
+import { DanceClass, DanceType, ProfileData, StatsData, User } from '../types';
 
 const API_URL = (window as any).ENV_API_URL ?? 'http://localhost:3000';
-
-function getToken(): string {
-  return localStorage.getItem('token') ?? '';
-}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getToken()}`,
       ...(options.headers ?? {}),
     },
   });
@@ -21,15 +17,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 // ── Auth ──────────────────────────────────────────────────────
-export async function apiLogin(name: string, password: string): Promise<{ token: string }> {
+export async function apiLogin(name: string, password: string): Promise<{ user: User; expiresAt: number }> {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, password }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message ?? 'Invalid credentials');
   return data;
+}
+
+export async function apiLogout(): Promise<void> {
+  await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
 }
 
 // ── Users ─────────────────────────────────────────────────────

@@ -17,8 +17,7 @@ export interface AuthRequest extends Request {
 }
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = req.cookies?.token as string | undefined;
 
   if (!token) {
     res.status(401).json({ message: 'No token provided' });
@@ -27,8 +26,6 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
-    // Assigning via cast: at runtime Express gives us a plain Request, and we
-    // enrich it. Downstream handlers type their `req` as AuthRequest.
     (req as AuthRequest).user = decoded;
     next();
   } catch {
