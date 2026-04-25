@@ -329,4 +329,93 @@ Headers applied by default in this configuration:
 
 - CSP, `X-Frame-Options`, and other security headers for the nginx frontend
   (backlog item 23).
-- Body validation with Zod (backlog item 6).
+
+---
+
+## ADR-006 — Body validation with Zod on all endpoints
+
+- **Date:** 2026-04-24
+- **Status:** Accepted
+- **Related points:** Backlog item 6 (Security).
+
+### Context
+
+All endpoints that accept a request body (POST, PATCH) had validation
+implemented ad-hoc inside individual middleware functions in
+`validateMiddleware.ts`. Each function repeated the same pattern: manual type
+checks, regex tests, and early `res.status(400)` returns. This was
+error-prone, inconsistent across endpoints, and hard to extend. Notably:
+
+- `POST /auth/login` validated `name` and `password` inline in the controller
+  (no dedicated middleware at all).
+- `PATCH /users/me/password` validated `password` inline in the controller.
+- `classes_paid` accepted `0, 12, 15` on registration but only `12, 15` on
+  payment update — an unintentional inconsistency.
+- No validation produced structured, machine-readable errors; all 400 responses
+  were plain `{ message: string }` objects.
+
+### Decision
+
+Replace all ad-hoc validation with [Zod](https://zod.dev/), a TypeScript-first
+schema validation library. The implementation follows two principles:
+
+1. **A single generic middleware factory** (`validate(schema, target)`) in
+   `middlewares/validateMiddleware.ts` handles all endpoints. `target` defaults
+   to `'body'`; `'params'` is used for URL parameter validation (e.g.
+   `DELETE /classes/:id`).
+
+2. **Schemas live next to their feature**, not in a shared folder, following the
+   feature-first convention of the project:
+
+   | File | Schemas |
+   |---|---|
+   | `features/auth/authSchemas.ts` | `loginSchema` |
+   | `features/users/usersSchemas.ts` | `registerUserSchema`, `updatePasswordSchema`, `updatePaymentSchema` |
+   | `features/classes/classesSchemas.ts` | `registerClassSchema`, `classIdParamSchema` |
+
+Inferred TypeScript types (`z.infer<typeof schema>`) are available from each
+schema file, eliminating the need to maintain separate interface definitions for
+request bodies.
+
+Additionally, the `classes_paid` inconsistency was corrected: both registration
+and payment update now accept only `12 | 15`. Registration defaults to `12` when
+the field is omitted.
+
+### Alternatives considered
+
+- **Joi.** Older and battle-tested, but TypeScript support is bolted on rather
+  than native. It would require maintaining separate TypeScript interfaces
+  alongside the Joi schemas. Rejected in favor of Zod's first-class TypeScript
+  integration.
+
+- **Keep hand-rolled validation.** Zero new dependencies, but the existing code
+  was already inconsistent and growing harder to maintain. Any new endpoint
+  would add yet another bespoke validator. Rejected.
+
+- **class-validator + class-transformer.** Decorator-based, requires
+  `experimentalDecorators` in `tsconfig.json`. More ceremony for no benefit at
+  this scale. Rejected.
+
+### Consequences
+
+**Accepted:**
+
+- Zod is added as a production dependency.
+- Validation error responses change shape: from `{ message: string }` to
+  `{ errors: ZodIssue[] }`. Clients (currently only the frontend) must be
+  updated to handle this format.
+- `(req as any)[target] = result.data` is used to write the coerced/stripped
+  data back onto the request. This is necessary because Express types
+  `req.params` as `Record<string, string>`, which conflicts with Zod's coerced
+  output (e.g. `{ id: number }`). The cast is isolated to one line in the
+  factory.
+- URL param `id` in `DELETE /classes/:id` is now coerced from string to number
+  by Zod before reaching the controller. The existing `Number(req.params.id)`
+  call in the controller is now redundant but harmless.
+
+**Not yet addressed:**
+
+- The frontend error-handling layer should be updated to display structured Zod
+  errors (backlog item 7 area).
+- CSP, `X-Frame-Options`, and other security headers for the nginx frontend
+  (backlog item 23).

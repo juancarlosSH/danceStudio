@@ -182,7 +182,7 @@ Prioritized from highest to lowest urgency. Address them as they come up in conv
 3. ~~**Password change without deactivating account**~~: intentional business decision — deactivation on password change is kept. See ADR-003 in `docs/decisions.md`.
 4. ~~**Rate limiting**~~: resolved — `loginLimiter` (10 req / 15 min) on `/auth/login` and `globalLimiter` (100 req / 1 min) on all routes. `trust proxy` enabled for nginx. See ADR-004 in `docs/decisions.md`.
 5. ~~**`helmet()`**~~: resolved — mounted as first middleware with `contentSecurityPolicy` disabled (pure JSON API). See ADR-005 in `docs/decisions.md`.
-6. **Body validation** with `zod` (or `joi`) on all endpoints.
+6. ~~**Body validation** with `zod` on all endpoints~~: resolved — generic `validate(schema, target)` factory with per-feature Zod schemas. `classes_paid` normalized to `12 | 15` only, default `12` on registration. See ADR-006 in `docs/decisions.md`.
 7. **Review JWT storage** in the frontend (if in `localStorage`, consider `httpOnly` cookie).
 
 ### API
