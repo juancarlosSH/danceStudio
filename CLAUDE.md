@@ -184,41 +184,46 @@ Prioritized from highest to lowest urgency. Address them as they come up in conv
 5. ~~**`helmet()`**~~: resolved — mounted as first middleware with `contentSecurityPolicy` disabled (pure JSON API). See ADR-005 in `docs/decisions.md`.
 6. ~~**Body validation** with `zod` on all endpoints~~: resolved — generic `validate(schema, target)` factory with per-feature Zod schemas. `classes_paid` normalized to `12 | 15` only, default `12` on registration. See ADR-006 in `docs/decisions.md`.
 7. ~~**Review JWT storage** in the frontend~~: resolved — JWT moved to an `httpOnly`, `SameSite=strict` cookie set by the server. `localStorage` no longer holds the token. `POST /auth/logout` clears the cookie. Cookie lifetime is derived from `JWT_EXPIRES_IN`. See ADR-007 in `docs/decisions.md`.
+8. **Session restore fallback on expired/missing auth cookie**: when frontend session metadata exists in `localStorage` but the `httpOnly` cookie is missing or expired, clear session state and redirect to login instead of leaving the UI in an authenticated-but-broken state.
 
 ### API
 
-8. **Consolidate dashboard endpoints**: `/users/me/dashboard` returning `classesTaken`, `classesRemaining`, `daysRemaining` in a single call.
-9. **Versioning**: `/api/v1/` prefix on all routes.
-10. **`/health` endpoint** for backend healthcheck.
+9. **Validate real calendar dates, not only `YYYY-MM-DD` format**: reject impossible dates such as `2026-02-31` with `400` instead of letting PostgreSQL raise an internal error.
+10. **Consolidate dashboard endpoints**: `/users/me/dashboard` returning `classesTaken`, `classesRemaining`, `daysRemaining` in a single call.
+11. **Versioning**: `/api/v1/` prefix on all routes.
+12. **`/health` endpoint** for backend healthcheck.
 
 ### Database
 
-11. **Soft deletes** on `classes` (`deleted_at` column).
-12. **Index** on `classes(user_id, date)` if missing.
-13. **`plans` table** if flexibility beyond 12/15 classes is needed.
+13. **Enforce unique usernames in the database**: add a unique constraint or unique index on `users.name` so concurrent registrations cannot create duplicate usernames.
+14. **Composite index for dashboard/history queries**: add an index on `dance_classes(user_id, class_date)`; the current schema only has single-column indexes.
+15. **Soft deletes** on `classes` (`deleted_at` column).
+16. **Index** on `classes(user_id, date)` if missing.
+17. **`plans` table** if flexibility beyond 12/15 classes is needed.
 
 ### Testing / DX
 
-14. **Unit tests** for date logic (classes taken, remaining, days).
-15. **Integration tests** with supertest.
-16. **GitHub Actions** with `npm test` and `npm run build`.
-17. **OpenAPI/Swagger** generated from code.
+18. **Unit tests** for date logic (classes taken, remaining, days).
+19. **Integration tests** with supertest.
+20. **GitHub Actions** with `npm test` and `npm run build`.
+21. **OpenAPI/Swagger** generated from code.
 
 ### Product
 
-18. Admin view (list students, overdue payments, etc.).
-19. Export history to CSV/PDF.
-20. Notifications when N days remain until payment.
+22. Admin view (list students, overdue payments, etc.).
+23. Export history to CSV/PDF.
+24. Notifications when N days remain until payment.
 
 ### Infrastructure
 
-21. Multi-stage builds in Dockerfiles.
-22. Remove `version: "3.9"` from `docker-compose.yml` (deprecated).
-23. Security headers in nginx config (CSP, X-Frame-Options).
-24. Don't expose backend port 3000 in production.
+25. **Align backend port configuration**: make backend runtime honor the documented `BACKEND_PORT` variable, or document `PORT` as the real runtime variable, so local and Docker behavior match.
+26. Multi-stage builds in Dockerfiles.
+27. Remove `version: "3.9"` from `docker-compose.yml` (deprecated).
+28. Security headers in nginx config (CSP, X-Frame-Options).
+29. Don't expose backend port 3000 in production.
 
 ### Repo
 
-25. Add `LICENSE`.
-26. Screenshots in README.
-27. Tags and CHANGELOG.
+30. Add `LICENSE`.
+31. Screenshots in README.
+32. Tags and CHANGELOG.

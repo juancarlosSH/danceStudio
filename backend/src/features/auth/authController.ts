@@ -11,10 +11,12 @@ function parseExpiryMs(val: string): number {
 
 const COOKIE_MAX_AGE = parseExpiryMs(process.env.JWT_EXPIRES_IN ?? '8h');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const cookieOptions = {
   httpOnly: true,
-  sameSite: 'strict' as const,
-  secure: process.env.NODE_ENV === 'production',
+  sameSite: (isProduction ? 'none' : 'strict') as 'none' | 'strict',
+  secure: isProduction,
   maxAge: COOKIE_MAX_AGE,
 };
 
@@ -30,6 +32,6 @@ export const loginHandler = async (req: Request, res: Response): Promise<void> =
 };
 
 export const logoutHandler = (_req: Request, res: Response): void => {
-  res.clearCookie('token', { httpOnly: true, sameSite: 'strict', secure: process.env.NODE_ENV === 'production' });
+  res.clearCookie('token', { httpOnly: true, sameSite: isProduction ? 'none' : 'strict', secure: isProduction });
   res.status(200).json({ message: 'Logged out' });
 };
