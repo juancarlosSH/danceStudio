@@ -175,55 +175,44 @@ FRONTEND_PORT=8080
 
 Prioritized from highest to lowest urgency. Address them as they come up in conversation:
 
-### Security
-
-1. ~~**Fix IDOR**~~: resolved — `/users/:id/*` routes replaced by `/users/me/*` and `user_id` taken from JWT. See ADR-001 in `docs/decisions.md`.
-2. ~~**Admin endpoint to activate accounts**~~: intentional business decision — manual SQL activation is kept. See ADR-002 in `docs/decisions.md`.
-3. ~~**Password change without deactivating account**~~: intentional business decision — deactivation on password change is kept. See ADR-003 in `docs/decisions.md`.
-4. ~~**Rate limiting**~~: resolved — `loginLimiter` (10 req / 15 min) on `/auth/login` and `globalLimiter` (100 req / 1 min) on all routes. `trust proxy` enabled for nginx. See ADR-004 in `docs/decisions.md`.
-5. ~~**`helmet()`**~~: resolved — mounted as first middleware with `contentSecurityPolicy` disabled (pure JSON API). See ADR-005 in `docs/decisions.md`.
-6. ~~**Body validation** with `zod` on all endpoints~~: resolved — generic `validate(schema, target)` factory with per-feature Zod schemas. `classes_paid` normalized to `12 | 15` only, default `12` on registration. See ADR-006 in `docs/decisions.md`.
-7. ~~**Review JWT storage** in the frontend~~: resolved — JWT moved to an `httpOnly`, `SameSite=strict` cookie set by the server. `localStorage` no longer holds the token. `POST /auth/logout` clears the cookie. Cookie lifetime is derived from `JWT_EXPIRES_IN`. See ADR-007 in `docs/decisions.md`.
-8. **Session restore fallback on expired/missing auth cookie**: when frontend session metadata exists in `localStorage` but the `httpOnly` cookie is missing or expired, clear session state and redirect to login instead of leaving the UI in an authenticated-but-broken state.
-
 ### API
 
-9. **Validate real calendar dates, not only `YYYY-MM-DD` format**: reject impossible dates such as `2026-02-31` with `400` instead of letting PostgreSQL raise an internal error.
-10. **Consolidate dashboard endpoints**: `/users/me/dashboard` returning `classesTaken`, `classesRemaining`, `daysRemaining` in a single call.
-11. **Versioning**: `/api/v1/` prefix on all routes.
-12. **`/health` endpoint** for backend healthcheck.
+1. **Validate real calendar dates, not only `YYYY-MM-DD` format**: reject impossible dates such as `2026-02-31` with `400` instead of letting PostgreSQL raise an internal error.
+2. **Consolidate dashboard endpoints**: `/users/me/dashboard` returning `classesTaken`, `classesRemaining`, `daysRemaining` in a single call.
+3. **Versioning**: `/api/v1/` prefix on all routes.
+4. **`/health` endpoint** for backend healthcheck.
 
 ### Database
 
-13. **Enforce unique usernames in the database**: add a unique constraint or unique index on `users.name` so concurrent registrations cannot create duplicate usernames.
-14. **Composite index for dashboard/history queries**: add an index on `dance_classes(user_id, class_date)`; the current schema only has single-column indexes.
-15. **Soft deletes** on `classes` (`deleted_at` column).
-16. **Index** on `classes(user_id, date)` if missing.
-17. **`plans` table** if flexibility beyond 12/15 classes is needed.
+5. **Enforce unique usernames in the database**: add a unique constraint or unique index on `users.name` so concurrent registrations cannot create duplicate usernames.
+6. **Composite index for dashboard/history queries**: add an index on `dance_classes(user_id, class_date)`; the current schema only has single-column indexes.
+7. **Soft deletes** on `classes` (`deleted_at` column).
+8. **Index** on `classes(user_id, date)` if missing.
+9. **`plans` table** if flexibility beyond 12/15 classes is needed.
 
 ### Testing / DX
 
-18. **Unit tests** for date logic (classes taken, remaining, days).
-19. **Integration tests** with supertest.
-20. **GitHub Actions** with `npm test` and `npm run build`.
-21. **OpenAPI/Swagger** generated from code.
+10. **Unit tests** for date logic (classes taken, remaining, days).
+11. **Integration tests** with supertest.
+12. **GitHub Actions** with `npm test` and `npm run build`.
+13. **OpenAPI/Swagger** generated from code.
 
 ### Product
 
-22. Admin view (list students, overdue payments, etc.).
-23. Export history to CSV/PDF.
-24. Notifications when N days remain until payment.
+14. Admin view (list students, overdue payments, etc.).
+15. Export history to CSV/PDF.
+16. Notifications when N days remain until payment.
 
 ### Infrastructure
 
-25. **Align backend port configuration**: make backend runtime honor the documented `BACKEND_PORT` variable, or document `PORT` as the real runtime variable, so local and Docker behavior match.
-26. Multi-stage builds in Dockerfiles.
-27. Remove `version: "3.9"` from `docker-compose.yml` (deprecated).
-28. Security headers in nginx config (CSP, X-Frame-Options).
-29. Don't expose backend port 3000 in production.
+17. **Align backend port configuration**: make backend runtime honor the documented `BACKEND_PORT` variable, or document `PORT` as the real runtime variable, so local and Docker behavior match.
+18. Multi-stage builds in Dockerfiles.
+19. Remove `version: "3.9"` from `docker-compose.yml` (deprecated).
+20. Security headers in nginx config (CSP, X-Frame-Options).
+21. Don't expose backend port 3000 in production.
 
 ### Repo
 
-30. Add `LICENSE`.
-31. Screenshots in README.
-32. Tags and CHANGELOG.
+22. Add `LICENSE`.
+23. Screenshots in README.
+24. Tags and CHANGELOG.

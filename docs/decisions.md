@@ -502,3 +502,92 @@ Concrete changes:
   its expiry. Mitigation: 8h TTL and the "password change deactivates account"
   rule (ADR-003). A proper denylist (jti + Redis) is out of scope here.
 - CSP and other security headers for the nginx frontend (backlog item 23).
+
+---
+
+## ADR-008 — Session restore fallback on expired or missing auth cookie
+
+- **Date:** 2026-04-30
+- **Status:** Accepted
+- **Related points:** Backlog item 8 (Security). Follows ADR-007.
+
+### Context
+
+After ADR-007, the frontend stores only two pieces of data in `localStorage`:
+the `user` object and a `session_expires_at` timestamp. The actual JWT lives
+exclusively in an `httpOnly` cookie. `restoreSession()` in `store.ts` checked
+those two localStorage entries and — if the timestamp had not expired —
+restored the session and navigated straight to the dashboard.
+
+This check is purely client-side and does not verify that the `httpOnly` cookie
+still exists. Several real scenarios cause the cookie to be absent while
+localStorage metadata remains valid:
+
+- The user manually clears browser cookies without clearing localStorage.
+- The browser evicts the cookie based on its own storage heuristics.
+- The server is restarted and a future denylist invalidates the session.
+
+In all these cases, `init()` would show the dashboard, call `loadDashboard()`,
+and all API calls would return 401. The result was a broken UI — skeletons that
+never resolved or generic unhandled errors — with no path back to the login
+screen short of a manual page reload.
+
+### Decision
+
+Introduce a typed `UnauthorizedError` class (exported from `services/api.ts`)
+thrown by the shared `request()` helper whenever the backend returns HTTP 401.
+Add `handleAuthExpired()` in `app.ts` that calls `clearSession()`, shows the
+login view, and displays a localized toast ("Your session has expired. Please
+log in again.").
+
+The catch is wired in every location that calls the API from a protected context:
+
+| Location | Behavior on `UnauthorizedError` |
+|---|---|
+| `init()` — startup session restore | Calls `handleAuthExpired()`, returns early; login is shown before any data loads |
+| `loadDashboard()` | Re-throws to let `init()` handle it |
+| `refreshDashboard()` | Calls `handleAuthExpired()` directly; covers mid-session expiry on any dashboard action |
+| `go-profile-btn` listener | `apiGetProfile()` 401 triggers redirect |
+| Quick-register listeners | `apiRegisterClass()` or `refreshDashboard()` 401 triggers redirect |
+| Calendar listener | `apiGetMyClasses()` 401 triggers redirect |
+| Language-toggle listener | `apiGetMyClasses()` 401 triggers redirect |
+
+`apiLogin()` uses its own `fetch` call, not `request()`, so a wrong-password
+401 at login is unaffected.
+
+A `sessionExpired` i18n key was added to both the EN and ES translation objects
+in `i18n/translations.ts`.
+
+### Alternatives considered
+
+- **Ping the server in `restoreSession()` before restoring.** Would make
+  `restoreSession()` async and require refactoring all callers. The
+  `UnauthorizedError` pattern achieves the same result without changing the
+  synchronous session-restore contract. Rejected.
+
+- **A global fetch interceptor with a registered callback.** Would centralize
+  the 401 handling but requires `api.ts` to call back into `app.ts` or `store.ts`,
+  creating a circular dependency. Rejected in favor of the current clean
+  dependency direction: `api.ts` throws, `app.ts` catches.
+
+- **Handle only the startup case; defer mid-session expiry.** The
+  `UnauthorizedError` pattern makes covering all protected listeners negligible
+  work, and UI consistency across startup and mid-session scenarios is worth it.
+  Rejected.
+
+### Consequences
+
+**Accepted:**
+
+- Any 401 from an authenticated endpoint clears the session and redirects to
+  login. This is correct: a 401 from an authenticated route means the server
+  does not recognize the session.
+- `apiLogin()` is not affected — wrong-password 401s still surface as regular
+  `Error` messages.
+- Unhandled promise rejections from `UnauthorizedError` are eliminated from
+  all event listeners that call the API.
+
+**Not yet addressed:**
+
+- JWT revocation / token denylist (acknowledged in ADR-007, still out of scope).
+- CSP and security headers for the nginx frontend (backlog item 23).
