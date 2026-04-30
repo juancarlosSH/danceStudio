@@ -77,6 +77,8 @@ export interface Translations {
 
   profileIcon: string;
   passwordIcon: string;
+
+  sessionExpired: string;
 }
 
 const en: Translations = {
@@ -151,6 +153,8 @@ const en: Translations = {
 
   profileIcon:          '💳',
   passwordIcon:         '🔒',
+
+  sessionExpired:       'Your session has expired. Please log in again.',
 };
 
 const es: Translations = {
@@ -225,6 +229,8 @@ const es: Translations = {
 
   profileIcon:          '💳',
   passwordIcon:         '🔒',
+
+  sessionExpired:       'Tu sesión ha expirado. Por favor inicia sesión de nuevo.',
 };
 
 export const TRANSLATIONS: Record<Lang, Translations> = { en, es };

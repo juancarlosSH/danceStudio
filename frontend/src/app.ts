@@ -6,7 +6,7 @@ import {
   apiLogin, apiLogout, apiRegisterUser, apiLoadStats,
   apiGetMyClasses, apiRegisterClass, apiDeleteClass,
   apiGetProfile, apiUpdatePayment, apiUpdatePassword,
-  todayString,
+  todayString, UnauthorizedError,
 } from './services/api';
 import { DanceType } from './types';
 
@@ -61,21 +61,35 @@ async function loadDashboard(): Promise<void> {
     renderStats(stats);
     renderClassTable(classes);
     renderCalendar(classes);
+  } catch (err) {
+    if (err instanceof UnauthorizedError) throw err;
   } finally {
     hideSkeletons();
   }
 }
 
 async function refreshDashboard(): Promise<void> {
-  const [stats, classes] = await Promise.all([
-    apiLoadStats(),
-    apiGetMyClasses(),
-  ]);
-  setStats(stats);
-  setClasses(classes);
-  renderStats(stats);
-  renderClassTable(classes);
-  renderCalendar(classes);
+  try {
+    const [stats, classes] = await Promise.all([
+      apiLoadStats(),
+      apiGetMyClasses(),
+    ]);
+    setStats(stats);
+    setClasses(classes);
+    renderStats(stats);
+    renderClassTable(classes);
+    renderCalendar(classes);
+  } catch (err) {
+    if (err instanceof UnauthorizedError) { handleAuthExpired(); return; }
+    throw err;
+  }
+}
+
+// ── Auth helpers ──────────────────────────────────────────────
+function handleAuthExpired(): void {
+  clearSession();
+  showView('login');
+  showToast(t('sessionExpired'), 'error');
 }
 
 // ── Auth handlers ─────────────────────────────────────────────
@@ -157,9 +171,14 @@ function initDashboardListeners(): void {
     document.getElementById('profile-username')!.textContent = user.name;
     showView('profile');
     (document.getElementById('password-form') as HTMLFormElement | null)?.reset();
-    const profile = await apiGetProfile();
-    populatePaymentForm(profile);
-    initProfileForms();
+    try {
+      const profile = await apiGetProfile();
+      populatePaymentForm(profile);
+      initProfileForms();
+    } catch (err) {
+      if (err instanceof UnauthorizedError) { handleAuthExpired(); return; }
+      throw err;
+    }
   });
 
   document.getElementById('go-dashboard-btn')?.addEventListener('click', () => showView('dashboard'));
@@ -172,24 +191,40 @@ function initDashboardListeners(): void {
     b.addEventListener('click', async () => {
       toggleLang();
       const user = getUser();
-      const classes = user ? await apiGetMyClasses() : [];
-      renderCalendar(classes);
+      if (!user) { renderCalendar([]); return; }
+      try {
+        const classes = await apiGetMyClasses();
+        renderCalendar(classes);
+      } catch (err) {
+        if (err instanceof UnauthorizedError) { handleAuthExpired(); return; }
+        throw err;
+      }
     })
   );
 
   initQuickRegisterListeners(async (type) => {
     const user = getUser();
     if (!user) return;
-    await apiRegisterClass(type, todayString());
-    await refreshDashboard();
-    showToast(`${type} — ${t('toastClassRegistered')}`, 'success');
+    try {
+      await apiRegisterClass(type, todayString());
+      await refreshDashboard();
+      showToast(`${type} — ${t('toastClassRegistered')}`, 'success');
+    } catch (err) {
+      if (err instanceof UnauthorizedError) { handleAuthExpired(); return; }
+      throw err;
+    }
   });
 
   initCalendarListeners(async () => {
     const user = getUser();
     if (!user) return;
-    const classes = await apiGetMyClasses();
-    renderCalendar(classes);
+    try {
+      const classes = await apiGetMyClasses();
+      renderCalendar(classes);
+    } catch (err) {
+      if (err instanceof UnauthorizedError) { handleAuthExpired(); return; }
+      throw err;
+    }
   });
 
   document.getElementById('btn-open-register')?.addEventListener('click', openRegisterModal);
@@ -217,7 +252,12 @@ async function init(): Promise<void> {
     document.getElementById('dash-username')!.textContent    = session.user.name;
     document.getElementById('profile-username')!.textContent = session.user.name;
     showView('dashboard');
-    await loadDashboard();
+    try {
+      await loadDashboard();
+    } catch (err) {
+      if (err instanceof UnauthorizedError) { handleAuthExpired(); return; }
+      throw err;
+    }
   } else {
     showView('login');
   }
